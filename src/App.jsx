@@ -9,6 +9,7 @@ import { requestStore, sessionStore } from './storage'
 import brandImage from './favIcon.jpg'
 import DotField from './components/DotField/DotField'
 import TextType from './components/TextType/TextType'
+import TargetCursor from './components/TargetCursor'
 
 const emptyForm = {
   need: '', projectType: '', payments: '', booking: '', dashboard: '', branding: '',
@@ -24,7 +25,7 @@ const scrollTo = (id) => {
 }
 
 function Logo({ onClick }) {
-  return <button className="logo" onClick={onClick} aria-label="SideQuest Tech home"><span className="logo-mark"><img src={brandImage} alt="" /></span><span>SideQuest <span>Tech</span></span></button>
+  return <button className="logo cursor-target" onClick={onClick} aria-label="SideQuest Tech home"><span className="logo-mark"><img src={brandImage} alt="" /></span><span>SideQuest <span>Tech</span></span></button>
 }
 
 function Navbar({ onStart, onAdmin }) {
@@ -42,12 +43,12 @@ function Navbar({ onStart, onAdmin }) {
   return <header className="nav-wrap">
     <nav className="navbar container">
       <Logo onClick={() => go('home')} />
-      <button className="menu-btn" onClick={() => setOpen(!open)} aria-label="Toggle navigation">{open ? <X /> : <Menu />}</button>
+      <button className="menu-btn cursor-target" onClick={() => setOpen(!open)} aria-label="Toggle navigation">{open ? <X /> : <Menu />}</button>
       <div className={`nav-links ${open ? 'open' : ''}`}>
-        <button className={active === 'home' ? 'active' : ''} onClick={() => go('home')}>Home</button><button className={active === 'services' ? 'active' : ''} onClick={() => go('services')}>Services</button>
-        <button className={active === 'process' ? 'active' : ''} onClick={() => go('process')}>Process</button><button className={active === 'portfolio' ? 'active' : ''} onClick={() => go('portfolio')}>Portfolio</button>
-        <button onClick={() => { onAdmin(); setOpen(false) }}>Admin Login</button>
-        <button className="btn btn-small" onClick={() => { onStart(); setOpen(false) }}>Start a Project <ArrowRight size={15} /></button>
+        <button className={`cursor-target ${active === 'home' ? 'active' : ''}`} onClick={() => go('home')}>Home</button><button className={`cursor-target ${active === 'services' ? 'active' : ''}`} onClick={() => go('services')}>Services</button>
+        <button className={`cursor-target ${active === 'process' ? 'active' : ''}`} onClick={() => go('process')}>Process</button><button className={`cursor-target ${active === 'portfolio' ? 'active' : ''}`} onClick={() => go('portfolio')}>Portfolio</button>
+        <button className="cursor-target" onClick={() => { onAdmin(); setOpen(false) }}>Admin Login</button>
+        <button className="btn btn-small cursor-target" onClick={() => { onStart(); setOpen(false) }}>Start a Project <ArrowRight size={15} /></button>
       </div>
     </nav>
   </header>
@@ -69,7 +70,7 @@ function Hero({ onStart }) {
           <TextType as="span" className="quest-line" text="Our Next Quest." typingSpeed={75} initialDelay={1050} pauseDuration={1500} deletingSpeed={50} loop={false} showCursor cursorCharacter="_" cursorClassName="hero-type-cursor" cursorBlinkDuration={0.5} aria-hidden="true" />
         </h1>
         <p>We build reliable websites, apps, automation tools, MVPs and custom software for businesses and founders ready to move forward.</p>
-        <div className="hero-actions"><button className="btn" onClick={onStart}>Start a Project <ArrowRight size={18} /></button><button className="btn btn-secondary" onClick={() => scrollTo('services')}>View Services</button></div>
+        <div className="hero-actions"><button className="btn cursor-target" onClick={onStart}>Start a Project <ArrowRight size={18} /></button><button className="btn btn-secondary cursor-target" onClick={() => scrollTo('services')}>View Services</button></div>
         <div className="trust-row"><div><ShieldCheck /><span><b>Business first</b><small>Technology with purpose</small></span></div><div><Clock3 /><span><b>Clear delivery</b><small>No black box development</small></span></div></div>
       </div>
       <div className="hero-visual" aria-hidden="true">
@@ -93,9 +94,9 @@ function SectionHeading({ label, title, text, centered = false }) {
 function Services({ onSelect }) {
   return <section id="services" className="section services"><div className="container">
     <SectionHeading label="What we build" title="Engineering capability that meets you where you are" text="From the first useful version to a mature platform, we bring the right level of product thinking and technical depth." />
-    <div className="service-grid">{services.map((service, i) => { const Icon = service.icon; return <article className="service-card" key={service.name}>
+    <div className="service-grid">{services.map((service, i) => { const Icon = service.icon; return <article className="service-card cursor-target" key={service.name}>
       <div className="service-top"><span className="service-icon"><Icon /></span><span className="service-num">0{i + 1}</span></div><h3>{service.name}</h3><p>{service.description}</p>
-      <button onClick={() => onSelect(service.short)}>Request this service <ArrowRight size={16} /></button>
+      <button className="cursor-target" onClick={() => onSelect(service.short)}>Request this service <ArrowRight size={16} /></button>
     </article> })}</div>
   </div></section>
 }
@@ -130,15 +131,15 @@ const portfolio = [
 ]
 
 function Portfolio() {
-  return <section id="portfolio" className="section portfolio-section"><div className="container"><div className="portfolio-head"><SectionHeading label="Selected capabilities" title="A glimpse of what we can build" text="These concept examples show our range. They are not presented as client claims." /><span className="concept-label">CAPABILITY SHOWCASE</span></div><div className="portfolio-grid">{portfolio.map(([title, text, tags], i) => <article className={`project-card project-${i + 1}`} key={title}><div className="project-preview"><div className="mock-window"><span /><span /><span /></div><div className="mock-content"><i /><i /><i /></div><ExternalLink /></div><div className="project-info"><small>Example 0{i + 1}</small><h3>{title}</h3><p>{text}</p><span>{tags}</span></div></article>)}</div></div></section>
+  return <section id="portfolio" className="section portfolio-section"><div className="container"><div className="portfolio-head"><SectionHeading label="Selected capabilities" title="A glimpse of what we can build" text="These concept examples show our range. They are not presented as client claims." /><span className="concept-label">CAPABILITY SHOWCASE</span></div><div className="portfolio-grid">{portfolio.map(([title, text, tags], i) => <article className={`project-card project-${i + 1} cursor-target`} key={title}><div className="project-preview"><div className="mock-window"><span /><span /><span /></div><div className="mock-content"><i /><i /><i /></div><ExternalLink /></div><div className="project-info"><small>Example 0{i + 1}</small><h3>{title}</h3><p>{text}</p><span>{tags}</span></div></article>)}</div></div></section>
 }
 
 function Contact({ onStart }) {
-  return <section id="contact" className="section contact-section"><div className="container"><div className="contact-panel section-grid"><div><div className="eyebrow">Let us build what is next</div><h2>Have a problem worth solving?</h2><p>Tell us what is getting in the way. You do not need a technical specification to start the conversation.</p><button className="btn btn-light" onClick={onStart}>Start your project request <ArrowRight /></button></div><div className="contact-details"><a href="mailto:hello@sidequesttech.co.za"><Mail /> <span><small>Email</small>hello@sidequesttech.co.za</span></a><a href="tel:+27000000000"><Phone /> <span><small>Phone</small>+27 00 000 0000</span></a><div><MapPin /> <span><small>Location</small>South Africa</span></div></div></div></div></section>
+  return <section id="contact" className="section contact-section"><div className="container"><div className="contact-panel section-grid"><div><div className="eyebrow">Let us build what is next</div><h2>Have a problem worth solving?</h2><p>Tell us what is getting in the way. You do not need a technical specification to start the conversation.</p><button className="btn btn-light cursor-target" onClick={onStart}>Start your project request <ArrowRight /></button></div><div className="contact-details"><a className="cursor-target" href="mailto:hello@sidequesttech.co.za"><Mail /> <span><small>Email</small>hello@sidequesttech.co.za</span></a><a className="cursor-target" href="tel:+27000000000"><Phone /> <span><small>Phone</small>+27 00 000 0000</span></a><div><MapPin /> <span><small>Location</small>South Africa</span></div></div></div></div></section>
 }
 
 function Footer() {
-  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button onClick={() => scrollTo('services')}>Services</button><button onClick={() => scrollTo('process')}>Process</button><button onClick={() => scrollTo('portfolio')}>Capabilities</button></div><div><h4>Start here</h4><a href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
+  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button><button className="cursor-target" onClick={() => scrollTo('portfolio')}>Capabilities</button></div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
 }
 
 function Field({ label, name, value, onChange, type = 'text', required, placeholder, children }) {
@@ -185,25 +186,25 @@ function ProjectWizard({ initialService, onClose, onSubmitted }) {
     }, 900)
   }
   const answers = Object.entries(data).filter(([key, value]) => value && !['need', 'fullName', 'company', 'email', 'phone', 'contactMethod', 'notes'].includes(key))
-  if (success) return <div className="modal-shell"><div className="wizard success-card"><button className="modal-close" onClick={onClose}><X /></button><div className="success-icon"><Check /></div><div className="eyebrow">Request received</div><h2>Thank you, {success.fullName.split(' ')[0]}.</h2><p>Your project profile is safely stored. Our team will use it to understand the opportunity before reaching out.</p><div className="reference"><small>Your reference number</small><strong>{success.reference}</strong></div><button className="btn" onClick={onClose}>Return to website</button></div></div>
-  return <div className="modal-shell"><div className="wizard"><div className="wizard-head"><div><Logo /><span>Project request</span></div><button className="modal-close" onClick={onClose}><X /></button></div>
+  if (success) return <div className="modal-shell"><div className="wizard success-card"><button className="modal-close cursor-target" onClick={onClose}><X /></button><div className="success-icon"><Check /></div><div className="eyebrow">Request received</div><h2>Thank you, {success.fullName.split(' ')[0]}.</h2><p>Your project profile is safely stored. Our team will use it to understand the opportunity before reaching out.</p><div className="reference"><small>Your reference number</small><strong>{success.reference}</strong></div><button className="btn cursor-target" onClick={onClose}>Return to website</button></div></div>
+  return <div className="modal-shell"><div className="wizard"><div className="wizard-head"><div><Logo /><span>Project request</span></div><button className="modal-close cursor-target" onClick={onClose}><X /></button></div>
     <div className="wizard-progress">{stepNames.map((name, i) => <div className={`${i <= step ? 'active' : ''} ${i < step ? 'done' : ''}`} key={name}><span>{i < step ? <Check /> : i + 1}</span><small>{name}</small></div>)}</div>
     <div className="wizard-body">
-      {step === 0 && <><div className="wizard-title"><span>01</span><div><h2>What do you need help with?</h2><p>Choose the closest fit. You can add context in the next step.</p></div></div><div className="option-grid">{needOptions.map(([value, label]) => <button key={value} onClick={() => { setData(d => ({ ...d, need: value })); setError('') }} className={data.need === value ? 'selected' : ''}><span><CircleDot /></span>{label}<Check /></button>)}</div></>}
+      {step === 0 && <><div className="wizard-title"><span>01</span><div><h2>What do you need help with?</h2><p>Choose the closest fit. You can add context in the next step.</p></div></div><div className="option-grid">{needOptions.map(([value, label]) => <button key={value} onClick={() => { setData(d => ({ ...d, need: value })); setError('') }} className={`cursor-target ${data.need === value ? 'selected' : ''}`}><span><CircleDot /></span>{label}<Check /></button>)}</div></>}
       {step === 1 && <><div className="wizard-title"><span>02</span><div><h2>Tell us a little more</h2><p>Plain language is perfect. We will help shape the technical details.</p></div></div><div className="form-grid"><ConditionalQuestions data={data} onChange={change} /></div></>}
       {step === 2 && <><div className="wizard-title"><span>03</span><div><h2>Budget and timing</h2><p>This helps us recommend a realistic delivery path.</p></div></div><div className="form-grid"><SelectField label="Budget range" name="budget" value={data.budget} onChange={change} required options={['Under R25,000', 'R25,000 - R60,000', 'R60,000 - R150,000', 'R150,000+', 'Not sure yet']} /><Field label="Desired launch date" name="launchDate" value={data.launchDate} onChange={change} type="date" required /><SelectField label="Urgency level" name="urgency" value={data.urgency} onChange={change} required options={['Flexible', 'Standard', 'High', 'Urgent']} /><Field label="Must-have features" name="mustHave" value={data.mustHave} onChange={change} type="textarea" required /><Field label="Nice-to-have features" name="niceToHave" value={data.niceToHave} onChange={change} type="textarea" /></div></>}
       {step === 3 && <><div className="wizard-title"><span>04</span><div><h2>How can we reach you?</h2><p>We will only use these details to discuss your request.</p></div></div><div className="form-grid"><Field label="Full name" name="fullName" value={data.fullName} onChange={change} required /><Field label="Company name" name="company" value={data.company} onChange={change} /><Field label="Email" name="email" value={data.email} onChange={change} type="email" required /><Field label="Phone number" name="phone" value={data.phone} onChange={change} type="tel" required /><SelectField label="Preferred contact method" name="contactMethod" value={data.contactMethod} onChange={change} required options={['Email', 'Phone', 'WhatsApp']} /><Field label="Extra notes" name="notes" value={data.notes} onChange={change} type="textarea" /></div></>}
       {step === 4 && <><div className="wizard-title"><span>05</span><div><h2>Review your request</h2><p>Check the essentials before sending it to the SideQuest Tech team.</p></div></div><div className="review-grid"><div className="review-card"><small>Project</small><h3>{serviceLabel(data.need)}</h3><p>{data.problem || data.businessIdea || data.repetitiveTask || data.broken}</p></div><div className="review-card"><small>Budget and timing</small><h3>{data.budget}</h3><p>Target: {data.launchDate} · {data.urgency} urgency</p></div><div className="review-card"><small>Contact</small><h3>{data.fullName}</h3><p>{data.company || 'Independent project'}<br />{data.email} · {data.phone}</p></div><div className="review-card review-wide"><small>Project profile</small>{answers.map(([key, value]) => <div className="answer-row" key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><p>{value}</p></div>)}</div>{data.notes && <div className="review-card review-wide"><small>Extra notes</small><p>{data.notes}</p></div>}</div></>}
       {error && <div className="form-error">{error}</div>}
     </div>
-    <div className="wizard-footer"><button className="btn btn-secondary" onClick={() => step === 0 ? onClose() : setStep(s => s - 1)}><ChevronLeft /> {step === 0 ? 'Cancel' : 'Back'}</button>{step < 4 ? <button className="btn" onClick={next}>Continue <ChevronRight /></button> : <button className="btn" onClick={submit} disabled={submitting}>{submitting ? <><span className="spinner" /> Sending request</> : <>Submit Request <ArrowRight /></>}</button>}</div>
+    <div className="wizard-footer"><button className="btn btn-secondary cursor-target" onClick={() => step === 0 ? onClose() : setStep(s => s - 1)}><ChevronLeft /> {step === 0 ? 'Cancel' : 'Back'}</button>{step < 4 ? <button className="btn cursor-target" onClick={next}>Continue <ChevronRight /></button> : <button className="btn cursor-target" onClick={submit} disabled={submitting}>{submitting ? <><span className="spinner" /> Sending request</> : <>Submit Request <ArrowRight /></>}</button>}</div>
   </div></div>
 }
 
 function AdminLogin({ onLogin, onClose }) {
   const [email, setEmail] = useState(''), [password, setPassword] = useState(''), [error, setError] = useState('')
   const submit = e => { e.preventDefault(); if (email === 'admin@sidequesttech.co.za' && password === 'SideQuestTech2026') onLogin(); else setError('The email or password is incorrect.') }
-  return <div className="admin-page section-grid"><div className="admin-login"><button className="back-site" onClick={onClose}><ChevronLeft /> Back to website</button><Logo onClick={onClose} /><div className="login-icon"><LockKeyhole /></div><div><div className="eyebrow">Secure workspace</div><h1>Admin login</h1><p>Manage incoming project requests and delivery status.</p></div><form onSubmit={submit}><Field label="Email address" name="email" value={email} onChange={e => { setEmail(e.target.value); setError('') }} type="email" required /><Field label="Password" name="password" value={password} onChange={e => { setPassword(e.target.value); setError('') }} type="password" required />{error && <div className="form-error">{error}</div>}<button className="btn" type="submit">Sign in <ArrowRight /></button></form><div className="demo-note"><ShieldCheck /><span><b>Demo access</b><small>admin@sidequesttech.co.za · SideQuestTech2026</small></span></div></div></div>
+  return <div className="admin-page section-grid"><div className="admin-login"><button className="back-site cursor-target" onClick={onClose}><ChevronLeft /> Back to website</button><Logo onClick={onClose} /><div className="login-icon"><LockKeyhole /></div><div><div className="eyebrow">Secure workspace</div><h1>Admin login</h1><p>Manage incoming project requests and delivery status.</p></div><form onSubmit={submit}><Field label="Email address" name="email" value={email} onChange={e => { setEmail(e.target.value); setError('') }} type="email" required /><Field label="Password" name="password" value={password} onChange={e => { setPassword(e.target.value); setError('') }} type="password" required />{error && <div className="form-error">{error}</div>}<button className="btn cursor-target" type="submit">Sign in <ArrowRight /></button></form><div className="demo-note"><ShieldCheck /><span><b>Demo access</b><small>admin@sidequesttech.co.za · SideQuestTech2026</small></span></div></div></div>
 }
 
 const statusOptions = ['New', 'Reviewing', 'Contacted', 'In Progress', 'Completed']
@@ -239,7 +240,14 @@ export default function App() {
   const openWizard = (choice = '') => { setService(choice); setWizard(true) }
   const login = () => { sessionStore.set(true); setView('dashboard') }
   const logout = () => { sessionStore.set(false); setView('site') }
-  if (view === 'login') return <AdminLogin onLogin={login} onClose={() => setView('site')} />
-  if (view === 'dashboard') return <AdminDashboard onLogout={logout} onClose={() => setView('site')} />
-  return <><Site onStart={openWizard} onAdmin={() => setView(sessionStore.get() ? 'dashboard' : 'login')} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
+  const content = view === 'login'
+    ? <AdminLogin onLogin={login} onClose={() => setView('site')} />
+    : view === 'dashboard'
+      ? <AdminDashboard onLogout={logout} onClose={() => setView('site')} />
+      : <><Site onStart={openWizard} onAdmin={() => setView(sessionStore.get() ? 'dashboard' : 'login')} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
+
+  return <>
+    {view === 'site' && <TargetCursor spinDuration={2} hideDefaultCursor parallaxOn hoverDuration={0.2} />}
+    {content}
+  </>
 }

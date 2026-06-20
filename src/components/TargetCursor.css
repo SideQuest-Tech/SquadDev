@@ -1,0 +1,46 @@
+.target-cursor-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 99999;
+  mix-blend-mode: difference;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+
+.target-cursor-corner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  filter: drop-shadow(0 0 4px rgba(47, 125, 255, 0.45));
+  will-change: transform;
+}
+
+.corner-tl { transform: translate(-150%, -150%); border-right: 0; border-bottom: 0; }
+.corner-tr { transform: translate(50%, -150%); border-left: 0; border-bottom: 0; }
+.corner-br { transform: translate(50%, 50%); border-left: 0; border-top: 0; }
+.corner-bl { transform: translate(-150%, 50%); border-right: 0; border-top: 0; }
+
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+  html.target-cursor-enabled,
+  html.target-cursor-enabled body,
+  html.target-cursor-enabled button,
+  html.target-cursor-enabled a,
+  html.target-cursor-enabled .cursor-target { cursor: none !important; }
+
+  html.target-cursor-enabled input,
+  html.target-cursor-enabled textarea,
+  html.target-cursor-enabled [contenteditable='true'] { cursor: text !important; }
+
+  html.target-cursor-enabled select { cursor: default !important; }
+}
+
+@media (max-width: 768px), (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .target-cursor-wrapper { display: none !important; }
+}
