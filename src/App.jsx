@@ -10,6 +10,7 @@ import brandImage from './favIcon.jpg'
 import DotField from './components/DotField/DotField'
 import TextType from './components/TextType/TextType'
 import TargetCursor from './components/TargetCursor'
+import CrmDashboard from './components/AdminDashboard'
 
 const emptyForm = {
   need: '', projectType: '', payments: '', booking: '', dashboard: '', branding: '',
@@ -139,7 +140,7 @@ function Contact({ onStart }) {
 }
 
 function Footer() {
-  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button><button className="cursor-target" onClick={() => scrollTo('portfolio')}>Capabilities</button></div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
+  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button><button className="cursor-target" onClick={() => scrollTo('portfolio')}>Capabilities</button></div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span><span>K2026488079 (SOUTH AFRICA)</span><span>Enterprise no. 2026/488079/07</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
 }
 
 function Field({ label, name, value, onChange, type = 'text', required, placeholder, children }) {
@@ -243,7 +244,7 @@ export default function App() {
   const content = view === 'login'
     ? <AdminLogin onLogin={login} onClose={() => setView('site')} />
     : view === 'dashboard'
-      ? <AdminDashboard onLogout={logout} onClose={() => setView('site')} />
+      ? <CrmDashboard onLogout={logout} onClose={() => setView('site')} />
       : <><Site onStart={openWizard} onAdmin={() => setView(sessionStore.get() ? 'dashboard' : 'login')} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
 
   return <>
