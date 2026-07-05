@@ -21,6 +21,8 @@ const emptyForm = {
   contactMethod: '', notes: ''
 }
 
+const SHOW_PORTFOLIO = import.meta.env.VITE_SHOW_PORTFOLIO === 'true'
+
 const scrollTo = (id) => {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
@@ -33,7 +35,7 @@ function Navbar({ onStart, onAdmin }) {
   const [open, setOpen] = useState(false), [active, setActive] = useState('home')
   useEffect(() => {
     const onScroll = () => {
-      const sections = ['home', 'services', 'process', 'portfolio']
+      const sections = SHOW_PORTFOLIO ? ['home', 'services', 'process', 'portfolio'] : ['home', 'services', 'process']
       const current = sections.filter(id => document.getElementById(id)?.getBoundingClientRect().top <= 140).at(-1)
       if (current) setActive(current)
     }
@@ -47,7 +49,7 @@ function Navbar({ onStart, onAdmin }) {
       <button className="menu-btn cursor-target" onClick={() => setOpen(!open)} aria-label="Toggle navigation">{open ? <X /> : <Menu />}</button>
       <div className={`nav-links ${open ? 'open' : ''}`}>
         <button className={`cursor-target ${active === 'home' ? 'active' : ''}`} onClick={() => go('home')}>Home</button><button className={`cursor-target ${active === 'services' ? 'active' : ''}`} onClick={() => go('services')}>Services</button>
-        <button className={`cursor-target ${active === 'process' ? 'active' : ''}`} onClick={() => go('process')}>Process</button><button className={`cursor-target ${active === 'portfolio' ? 'active' : ''}`} onClick={() => go('portfolio')}>Portfolio</button>
+        <button className={`cursor-target ${active === 'process' ? 'active' : ''}`} onClick={() => go('process')}>Process</button>{SHOW_PORTFOLIO && <button className={`cursor-target ${active === 'portfolio' ? 'active' : ''}`} onClick={() => go('portfolio')}>Portfolio</button>}
         <button className="cursor-target" onClick={() => { onAdmin(); setOpen(false) }}>Admin Login</button>
         <button className="btn btn-small cursor-target" onClick={() => { onStart(); setOpen(false) }}>Start a Project <ArrowRight size={15} /></button>
       </div>
@@ -136,11 +138,11 @@ function Portfolio() {
 }
 
 function Contact({ onStart }) {
-  return <section id="contact" className="section contact-section"><div className="container"><div className="contact-panel section-grid"><div><div className="eyebrow">Let us build what is next</div><h2>Have a problem worth solving?</h2><p>Tell us what is getting in the way. You do not need a technical specification to start the conversation.</p><button className="btn btn-light cursor-target" onClick={onStart}>Start your project request <ArrowRight /></button></div><div className="contact-details"><a className="cursor-target" href="mailto:hello@sidequesttech.co.za"><Mail /> <span><small>Email</small>hello@sidequesttech.co.za</span></a><a className="cursor-target" href="tel:+27000000000"><Phone /> <span><small>Phone</small>+27 00 000 0000</span></a><div><MapPin /> <span><small>Location</small>South Africa</span></div></div></div></div></section>
+  return <section id="contact" className="section contact-section"><div className="container"><div className="contact-panel section-grid"><div><div className="eyebrow">Let us build what is next</div><h2>Have a problem worth solving?</h2><p>Tell us what is getting in the way. You do not need a technical specification to start the conversation.</p><button className="btn btn-light cursor-target" onClick={onStart}>Start your project request <ArrowRight /></button></div><div className="contact-details"><a className="cursor-target" href="mailto:hello@sidequesttech.co.za"><Mail /> <span><small>Email</small>hello@sidequesttech.co.za</span></a><a className="cursor-target" href="tel:+27686955513"><Phone /> <span><small>Phone</small>+27 68 695 5513</span></a><div><MapPin /> <span><small>Location</small>South Africa</span></div></div></div></div></section>
 }
 
 function Footer() {
-  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button><button className="cursor-target" onClick={() => scrollTo('portfolio')}>Capabilities</button></div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span><span>K2026488079 (SOUTH AFRICA)</span><span>Enterprise no. 2026/488079/07</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
+  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button>{SHOW_PORTFOLIO && <button className="cursor-target" onClick={() => scrollTo('portfolio')}>Capabilities</button>}</div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span><span>SideQuest Tech (Pty) Ltd</span><span>Enterprise no. 2026/488079/07</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
 }
 
 function Field({ label, name, value, onChange, type = 'text', required, placeholder, children }) {
@@ -178,13 +180,21 @@ function ProjectWizard({ initialService, onClose, onSubmitted }) {
     return ''
   }
   const next = () => { const message = validate(); if (message) return setError(message); setStep(s => Math.min(4, s + 1)); setError('') }
-  const submit = () => {
+  const submit = async () => {
     setSubmitting(true)
-    setTimeout(() => {
-      const stamp = Date.now(), ref = `SQT-${new Date().getFullYear()}-${String(stamp).slice(-6)}`
-      const request = { ...data, id: stamp, reference: ref, status: 'New', createdAt: new Date().toISOString() }
-      requestStore.add(request); setSuccess(request); setSubmitting(false); onSubmitted?.()
-    }, 900)
+    const stamp = Date.now(), ref = `SQT-${new Date().getFullYear()}-${String(stamp).slice(-6)}`
+    const request = { ...data, id: stamp, reference: ref, status: 'New', createdAt: new Date().toISOString() }
+    requestStore.add(request)
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
+      })
+    } catch (err) {
+      console.error('[send-email]', err)
+    }
+    setSuccess(request); setSubmitting(false); onSubmitted?.()
   }
   const answers = Object.entries(data).filter(([key, value]) => value && !['need', 'fullName', 'company', 'email', 'phone', 'contactMethod', 'notes'].includes(key))
   if (success) return <div className="modal-shell"><div className="wizard success-card"><button className="modal-close cursor-target" onClick={onClose}><X /></button><div className="success-icon"><Check /></div><div className="eyebrow">Request received</div><h2>Thank you, {success.fullName.split(' ')[0]}.</h2><p>Your project profile is safely stored. Our team will use it to understand the opportunity before reaching out.</p><div className="reference"><small>Your reference number</small><strong>{success.reference}</strong></div><button className="btn cursor-target" onClick={onClose}>Return to website</button></div></div>
@@ -205,7 +215,7 @@ function ProjectWizard({ initialService, onClose, onSubmitted }) {
 function AdminLogin({ onLogin, onClose }) {
   const [email, setEmail] = useState(''), [password, setPassword] = useState(''), [error, setError] = useState('')
   const submit = e => { e.preventDefault(); if (email === 'admin@sidequesttech.co.za' && password === 'SideQuestTech2026') onLogin(); else setError('The email or password is incorrect.') }
-  return <div className="admin-page section-grid"><div className="admin-login"><button className="back-site cursor-target" onClick={onClose}><ChevronLeft /> Back to website</button><Logo onClick={onClose} /><div className="login-icon"><LockKeyhole /></div><div><div className="eyebrow">Secure workspace</div><h1>Admin login</h1><p>Manage incoming project requests and delivery status.</p></div><form onSubmit={submit}><Field label="Email address" name="email" value={email} onChange={e => { setEmail(e.target.value); setError('') }} type="email" required /><Field label="Password" name="password" value={password} onChange={e => { setPassword(e.target.value); setError('') }} type="password" required />{error && <div className="form-error">{error}</div>}<button className="btn cursor-target" type="submit">Sign in <ArrowRight /></button></form><div className="demo-note"><ShieldCheck /><span><b>Demo access</b><small>admin@sidequesttech.co.za · SideQuestTech2026</small></span></div></div></div>
+  return <div className="admin-page section-grid"><div className="admin-login"><button className="back-site cursor-target" onClick={onClose}><ChevronLeft /> Back to website</button><Logo onClick={onClose} /><div className="login-icon"><LockKeyhole /></div><div><div className="eyebrow">Secure workspace</div><h1>Admin login</h1><p>Manage incoming project requests and delivery status.</p></div><form onSubmit={submit}><Field label="Email address" name="email" value={email} onChange={e => { setEmail(e.target.value); setError('') }} type="email" required /><Field label="Password" name="password" value={password} onChange={e => { setPassword(e.target.value); setError('') }} type="password" required />{error && <div className="form-error">{error}</div>}<button className="btn cursor-target" type="submit">Sign in <ArrowRight /></button></form></div></div>
 }
 
 const statusOptions = ['New', 'Reviewing', 'Contacted', 'In Progress', 'Completed']
@@ -232,7 +242,7 @@ function AdminDashboard({ onLogout, onClose }) {
 function Detail({ label, value }) { return <div className="detail-row"><span>{label}</span><p>{value || 'Not provided'}</p></div> }
 
 function Site({ onStart, onAdmin }) {
-  return <><Navbar onStart={() => onStart()} onAdmin={onAdmin} /><main><Hero onStart={() => onStart()} /><Services onSelect={onStart} /><Values /><Process /><Portfolio /><Contact onStart={() => onStart()} /></main><Footer /></>
+  return <><Navbar onStart={() => onStart()} onAdmin={onAdmin} /><main><Hero onStart={() => onStart()} /><Services onSelect={onStart} /><Values /><Process />{SHOW_PORTFOLIO && <Portfolio />}<Contact onStart={() => onStart()} /></main><Footer /></>
 }
 
 export default function App() {
