@@ -11,6 +11,7 @@ import DotField from './components/DotField/DotField'
 import TextType from './components/TextType/TextType'
 import TargetCursor from './components/TargetCursor'
 import CrmDashboard from './components/AdminDashboard'
+import ConceptsSection from './components/concepts/ConceptsSection'
 
 const emptyForm = {
   need: '', projectType: '', payments: '', booking: '', dashboard: '', branding: '',
@@ -21,7 +22,19 @@ const emptyForm = {
   contactMethod: '', notes: ''
 }
 
-const SHOW_PORTFOLIO = import.meta.env.VITE_SHOW_PORTFOLIO === 'true'
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches)
+
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    const update = () => setMatches(media.matches)
+    update()
+    media.addEventListener?.('change', update)
+    return () => media.removeEventListener?.('change', update)
+  }, [query])
+
+  return matches
+}
 
 const scrollTo = (id) => {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -33,23 +46,46 @@ function Logo({ onClick }) {
 
 function Navbar({ onStart, onAdmin }) {
   const [open, setOpen] = useState(false), [active, setActive] = useState('home')
+  const mobile = useMediaQuery('(max-width: 800px)')
   useEffect(() => {
     const onScroll = () => {
-      const sections = SHOW_PORTFOLIO ? ['home', 'services', 'process', 'portfolio'] : ['home', 'services', 'process']
+      const sections = ['home', 'services', 'process', 'concepts']
       const current = sections.filter(id => document.getElementById(id)?.getBoundingClientRect().top <= 140).at(-1)
       if (current) setActive(current)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-  const go = (id) => { setActive(id); scrollTo(id); setOpen(false) }
-  return <header className="nav-wrap">
+
+  useEffect(() => {
+    if (!open) return undefined
+    const closeOnEscape = event => event.key === 'Escape' && setOpen(false)
+    document.body.classList.add('nav-open')
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.classList.remove('nav-open')
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!mobile) setOpen(false)
+  }, [mobile])
+
+  const go = (id) => {
+    setActive(id)
+    setOpen(false)
+    requestAnimationFrame(() => scrollTo(id))
+  }
+  return <header className={`nav-wrap ${open ? 'menu-open' : ''}`}>
     <nav className="navbar container">
       <Logo onClick={() => go('home')} />
-      <button className="menu-btn cursor-target" onClick={() => setOpen(!open)} aria-label="Toggle navigation">{open ? <X /> : <Menu />}</button>
-      <div className={`nav-links ${open ? 'open' : ''}`}>
-        <button className={`cursor-target ${active === 'home' ? 'active' : ''}`} onClick={() => go('home')}>Home</button><button className={`cursor-target ${active === 'services' ? 'active' : ''}`} onClick={() => go('services')}>Services</button>
-        <button className={`cursor-target ${active === 'process' ? 'active' : ''}`} onClick={() => go('process')}>Process</button>{SHOW_PORTFOLIO && <button className={`cursor-target ${active === 'portfolio' ? 'active' : ''}`} onClick={() => go('portfolio')}>Portfolio</button>}
+      <button className="menu-btn cursor-target" onClick={() => setOpen(value => !value)} aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="primary-navigation">{open ? <X /> : <Menu />}</button>
+      <button className={`nav-scrim ${open ? 'open' : ''}`} aria-label="Close navigation" tabIndex={-1} onClick={() => setOpen(false)} />
+      <div id="primary-navigation" className={`nav-links ${open ? 'open' : ''}`} aria-hidden={mobile && !open}>
+        <span className="menu-kicker">Navigation</span>
+        <button className={`cursor-target ${active === 'home' ? 'active' : ''}`} aria-current={active === 'home' ? 'page' : undefined} onClick={() => go('home')}>Home</button><button className={`cursor-target ${active === 'services' ? 'active' : ''}`} aria-current={active === 'services' ? 'page' : undefined} onClick={() => go('services')}>Services</button>
+        <button className={`cursor-target ${active === 'process' ? 'active' : ''}`} aria-current={active === 'process' ? 'page' : undefined} onClick={() => go('process')}>Process</button><button className={`cursor-target ${active === 'concepts' ? 'active' : ''}`} aria-current={active === 'concepts' ? 'page' : undefined} onClick={() => go('concepts')}>Concepts</button>
         <button className="cursor-target" onClick={() => { onAdmin(); setOpen(false) }}>Admin Login</button>
         <button className="btn btn-small cursor-target" onClick={() => { onStart(); setOpen(false) }}>Start a Project <ArrowRight size={15} /></button>
       </div>
@@ -58,25 +94,28 @@ function Navbar({ onStart, onAdmin }) {
 }
 
 function Hero({ onStart }) {
+  const compact = useMediaQuery('(max-width: 800px)')
+  const phone = useMediaQuery('(max-width: 600px)')
+
   return <section id="home" className="hero section-grid">
     <div className="orb orb-one" /><div className="orb orb-two" />
-    <div className="dot-field-layer hero-dot-field" aria-hidden="true"><DotField
+    {!compact && <div className="dot-field-layer hero-dot-field" aria-hidden="true"><DotField
       dotRadius={1.2} dotSpacing={18} bulgeStrength={55} glowRadius={140}
       sparkle={false} waveAmplitude={0} cursorRadius={420} cursorForce={0.08} bulgeOnly
       gradientFrom="rgba(255,255,255,0.18)" gradientTo="rgba(84,86,90,0.12)"
       glowColor="rgba(37,99,235,0.18)"
-    /></div>
+    /></div>}
     <div className="container hero-layout">
       <div className="hero-copy reveal">
         <h1 aria-label="Your Vision. Our Next Quest.">
-          <TextType as="span" className="vision-line" text="Your Vision." typingSpeed={75} loop={false} showCursor={false} aria-hidden="true" />
-          <TextType as="span" className="quest-line" text="Our Next Quest." typingSpeed={75} initialDelay={1050} pauseDuration={1500} deletingSpeed={50} loop={false} showCursor cursorCharacter="_" cursorClassName="hero-type-cursor" cursorBlinkDuration={0.5} aria-hidden="true" />
+          <TextType as="span" className="vision-line" text="Your Vision." typingSpeed={compact ? 32 : 75} loop={false} showCursor={false} aria-hidden="true" />
+          <TextType as="span" className="quest-line" text="Our Next Quest." typingSpeed={compact ? 32 : 75} initialDelay={compact ? 420 : 1050} pauseDuration={1500} deletingSpeed={50} loop={false} showCursor cursorCharacter="_" cursorClassName="hero-type-cursor" cursorBlinkDuration={0.5} aria-hidden="true" />
         </h1>
         <p>We build reliable websites, apps, automation tools, MVPs and custom software for businesses and founders ready to move forward.</p>
         <div className="hero-actions"><button className="btn cursor-target" onClick={onStart}>Start a Project <ArrowRight size={18} /></button><button className="btn btn-secondary cursor-target" onClick={() => scrollTo('services')}>View Services</button></div>
-        <div className="trust-row"><div><ShieldCheck /><span><b>Business first</b><small>Technology with purpose</small></span></div><div><Clock3 /><span><b>Clear delivery</b><small>No black box development</small></span></div></div>
+        {!phone && <div className="trust-row"><div><ShieldCheck /><span><b>Business first</b><small>Technology with purpose</small></span></div><div><Clock3 /><span><b>Clear delivery</b><small>No black box development</small></span></div></div>}
       </div>
-      <div className="hero-visual" aria-hidden="true">
+      {!phone && <div className="hero-visual" aria-hidden="true">
         <div className="code-window glass">
           <div className="window-head"><span /><span /><span /><small>sidequest-tech / delivery</small></div>
           <div className="code-lines"><i /><i /><i /><i /><i /><i /></div>
@@ -84,9 +123,9 @@ function Hero({ onStart }) {
         </div>
         <div className="float-card card-a glass"><Zap /><span><b>Fast by design</b><small>Performance built in</small></span></div>
         <div className="float-card card-b glass"><Layers3 /><span><b>Built to scale</b><small>Solid foundations</small></span></div>
-      </div>
+      </div>}
     </div>
-    <div className="tech-strip"><span>PRODUCT STRATEGY</span><i /><span>WEB ENGINEERING</span><i /><span>MOBILE APPS</span><i /><span>AUTOMATION</span><i /><span>LONG-TERM SUPPORT</span></div>
+    {!phone && <div className="tech-strip"><span>PRODUCT STRATEGY</span><i /><span>WEB ENGINEERING</span><i /><span>MOBILE APPS</span><i /><span>AUTOMATION</span><i /><span>LONG-TERM SUPPORT</span></div>}
   </section>
 }
 
@@ -111,12 +150,14 @@ const values = [
 ]
 
 function Values() {
-  return <section className="section values-section"><div className="dot-field-layer values-dot-field" aria-hidden="true"><DotField
+  const compact = useMediaQuery('(max-width: 800px)')
+
+  return <section className="section values-section">{!compact && <div className="dot-field-layer values-dot-field" aria-hidden="true"><DotField
     dotRadius={1} dotSpacing={20} bulgeStrength={45} glowRadius={120}
     sparkle={false} waveAmplitude={0} cursorRadius={360} cursorForce={0.06} bulgeOnly
     gradientFrom="rgba(255,255,255,0.12)" gradientTo="rgba(84,86,90,0.08)"
     glowColor="rgba(37,99,235,0.12)"
-  /></div><div className="container values-layout"><div className="values-copy"><SectionHeading label="Why SideQuest Tech" title="Strong software starts with a better working relationship" text="Good engineering is more than code. It is clear thinking, dependable execution and attention to what moves the business." /><div className="metric-card glass"><strong>One team</strong><span>From discovery to delivery and beyond</span></div></div><div className="value-list">{values.map(([title, text], i) => <div className="value-item" key={title}><span>{String(i + 1).padStart(2, '0')}</span><div><h3>{title}</h3><p>{text}</p></div><Check size={18} /></div>)}</div></div></section>
+  /></div>}<div className="container values-layout"><div className="values-copy"><SectionHeading label="Why SideQuest Tech" title="Strong software starts with a better working relationship" text="Good engineering is more than code. It is clear thinking, dependable execution and attention to what moves the business." /><div className="metric-card glass"><strong>One team</strong><span>From discovery to delivery and beyond</span></div></div><div className="value-list">{values.map(([title, text], i) => <div className="value-item" key={title}><span>{String(i + 1).padStart(2, '0')}</span><div><h3>{title}</h3><p>{text}</p></div><Check size={18} /></div>)}</div></div></section>
 }
 
 const process = [['Discovery', 'Understand the goal, context and real constraints.'], ['Planning', 'Define the path, scope and delivery priorities.'], ['Design', 'Shape clear user journeys and polished interfaces.'], ['Development', 'Build in focused, testable and visible increments.'], ['Testing', 'Check quality, performance and edge cases.'], ['Launch', 'Move to production with a controlled release.'], ['Support', 'Monitor, improve and grow the product with you.']]
@@ -125,24 +166,12 @@ function Process() {
   return <section id="process" className="section process-section"><div className="container"><SectionHeading centered label="How we work" title="A clear path from problem to progress" text="A practical process that keeps momentum high and surprises low." /><div className="process-line">{process.map(([title, text], i) => <div className="process-step" key={title}><span>{i + 1}</span><h3>{title}</h3><p>{text}</p></div>)}</div></div></section>
 }
 
-const portfolio = [
-  ['Business landing page', 'Conversion-focused web experience', 'Strategy · Design · Development'],
-  ['Booking platform', 'Scheduling and payment flow', 'Product · Web app · Integrations'],
-  ['Internal dashboard', 'Operational data in one clear view', 'UX · Software · Analytics'],
-  ['Ecommerce website', 'Modern retail and checkout experience', 'Commerce · Payments · Growth'],
-  ['Automation workflow', 'Connected processes with less manual work', 'Automation · APIs · Reporting']
-]
-
-function Portfolio() {
-  return <section id="portfolio" className="section portfolio-section"><div className="container"><div className="portfolio-head"><SectionHeading label="Selected capabilities" title="A glimpse of what we can build" text="These concept examples show our range. They are not presented as client claims." /><span className="concept-label">CAPABILITY SHOWCASE</span></div><div className="portfolio-grid">{portfolio.map(([title, text, tags], i) => <article className={`project-card project-${i + 1} cursor-target`} key={title}><div className="project-preview"><div className="mock-window"><span /><span /><span /></div><div className="mock-content"><i /><i /><i /></div><ExternalLink /></div><div className="project-info"><small>Example 0{i + 1}</small><h3>{title}</h3><p>{text}</p><span>{tags}</span></div></article>)}</div></div></section>
-}
-
 function Contact({ onStart }) {
   return <section id="contact" className="section contact-section"><div className="container"><div className="contact-panel section-grid"><div><div className="eyebrow">Let us build what is next</div><h2>Have a problem worth solving?</h2><p>Tell us what is getting in the way. You do not need a technical specification to start the conversation.</p><button className="btn btn-light cursor-target" onClick={onStart}>Start your project request <ArrowRight /></button></div><div className="contact-details"><a className="cursor-target" href="mailto:hello@sidequesttech.co.za"><Mail /> <span><small>Email</small>hello@sidequesttech.co.za</span></a><a className="cursor-target" href="tel:+27686955513"><Phone /> <span><small>Phone</small>+27 68 695 5513</span></a><div><MapPin /> <span><small>Location</small>South Africa</span></div></div></div></div></section>
 }
 
 function Footer() {
-  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button>{SHOW_PORTFOLIO && <button className="cursor-target" onClick={() => scrollTo('portfolio')}>Capabilities</button>}</div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span><span>SideQuest Tech (Pty) Ltd</span><span>Enterprise no. 2026/488079/07</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
+  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button><button className="cursor-target" onClick={() => scrollTo('concepts')}>Concepts</button></div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span><span>SideQuest Tech (Pty) Ltd</span><span>Enterprise no. 2026/488079/07</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
 }
 
 function Field({ label, name, value, onChange, type = 'text', required, placeholder, children }) {
@@ -197,8 +226,8 @@ function ProjectWizard({ initialService, onClose, onSubmitted }) {
     setSuccess(request); setSubmitting(false); onSubmitted?.()
   }
   const answers = Object.entries(data).filter(([key, value]) => value && !['need', 'fullName', 'company', 'email', 'phone', 'contactMethod', 'notes'].includes(key))
-  if (success) return <div className="modal-shell"><div className="wizard success-card"><button className="modal-close cursor-target" onClick={onClose}><X /></button><div className="success-icon"><Check /></div><div className="eyebrow">Request received</div><h2>Thank you, {success.fullName.split(' ')[0]}.</h2><p>Your project profile is safely stored. Our team will use it to understand the opportunity before reaching out.</p><div className="reference"><small>Your reference number</small><strong>{success.reference}</strong></div><button className="btn cursor-target" onClick={onClose}>Return to website</button></div></div>
-  return <div className="modal-shell"><div className="wizard"><div className="wizard-head"><div><Logo /><span>Project request</span></div><button className="modal-close cursor-target" onClick={onClose}><X /></button></div>
+  if (success) return <div className="modal-shell"><div className="wizard success-card"><button className="modal-close cursor-target" aria-label="Close project request" onClick={onClose}><X /></button><div className="success-icon"><Check /></div><div className="eyebrow">Request received</div><h2>Thank you, {success.fullName.split(' ')[0]}.</h2><p>Your project profile is safely stored. Our team will use it to understand the opportunity before reaching out.</p><div className="reference"><small>Your reference number</small><strong>{success.reference}</strong></div><button className="btn cursor-target" onClick={onClose}>Return to website</button></div></div>
+  return <div className="modal-shell"><div className="wizard"><div className="wizard-head"><div><Logo /><span>Project request</span></div><button className="modal-close cursor-target" aria-label="Close project request" onClick={onClose}><X /></button></div>
     <div className="wizard-progress">{stepNames.map((name, i) => <div className={`${i <= step ? 'active' : ''} ${i < step ? 'done' : ''}`} key={name}><span>{i < step ? <Check /> : i + 1}</span><small>{name}</small></div>)}</div>
     <div className="wizard-body">
       {step === 0 && <><div className="wizard-title"><span>01</span><div><h2>What do you need help with?</h2><p>Choose the closest fit. You can add context in the next step.</p></div></div><div className="option-grid">{needOptions.map(([value, label]) => <button key={value} onClick={() => { setData(d => ({ ...d, need: value })); setError('') }} className={`cursor-target ${data.need === value ? 'selected' : ''}`}><span><CircleDot /></span>{label}<Check /></button>)}</div></>}
@@ -242,7 +271,7 @@ function AdminDashboard({ onLogout, onClose }) {
 function Detail({ label, value }) { return <div className="detail-row"><span>{label}</span><p>{value || 'Not provided'}</p></div> }
 
 function Site({ onStart, onAdmin }) {
-  return <><Navbar onStart={() => onStart()} onAdmin={onAdmin} /><main><Hero onStart={() => onStart()} /><Services onSelect={onStart} /><Values /><Process />{SHOW_PORTFOLIO && <Portfolio />}<Contact onStart={() => onStart()} /></main><Footer /></>
+  return <><Navbar onStart={() => onStart()} onAdmin={onAdmin} /><main><Hero onStart={() => onStart()} /><Services onSelect={onStart} /><Values /><Process /><ConceptsSection /><Contact onStart={() => onStart()} /></main><Footer /></>
 }
 
 export default function App() {

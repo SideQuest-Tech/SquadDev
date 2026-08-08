@@ -28,25 +28,34 @@ cp .env.example .env
 
 | Variable | Description |
 |---|---|
-| `VITE_SHOW_PORTFOLIO` | Set to `true` to show the portfolio section. Defaults to hidden. |
 | `RESEND_API_KEY` | API key from [resend.com](https://resend.com) |
 
 > **Resend domain verification** — to send from `hello@sidequesttech.co.za`, the domain `sidequesttech.co.za` must be verified in your Resend account (Resend → Domains → Add domain → follow the DNS steps).
 
 ### Run locally
 
+For frontend-only development:
+
 ```bash
 npm run dev
 ```
 
-This runs `vercel dev`, which starts Vite (with HMR) **and** the `/api` serverless functions together — no separate server needed. Open [http://localhost:3000](http://localhost:3000).
+This starts Vite with HMR. Open [http://localhost:5173](http://localhost:5173).
+
+To run Vite and the `/api` serverless functions together:
+
+```bash
+npm run dev:vercel
+```
+
+This runs `vercel dev`. Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
 ## Deployment
 
 Push to the connected Vercel project. Vercel auto-builds from `main`.  
-Set `RESEND_API_KEY` and `VITE_SHOW_PORTFOLIO` in the Vercel dashboard under **Settings → Environment Variables**.
+Set `RESEND_API_KEY` in the Vercel dashboard under **Settings → Environment Variables**.
 
 ---
 
@@ -62,6 +71,6 @@ Set `RESEND_API_KEY` and `VITE_SHOW_PORTFOLIO` in the Vercel dashboard under **S
 
 ---
 
-## Portfolio section
+## Concepts section
 
-Hidden by default. Set `VITE_SHOW_PORTFOLIO=true` (locally in `.env`, or in the Vercel dashboard) to enable it. When hidden, the section, navbar link, and footer link are all removed — it cannot be reached from any part of the site.
+The Concepts exhibition is part of the main homepage. Concept content is data-driven from `src/data/concepts.js`, and its optimized website previews live in `src/assets/concepts`.
