@@ -111,6 +111,7 @@ function Hero({ onStart }) {
           <TextType as="span" className="vision-line" text="Your Vision." typingSpeed={compact ? 32 : 75} loop={false} showCursor={false} aria-hidden="true" />
           <TextType as="span" className="quest-line" text="Our Next Quest." typingSpeed={compact ? 32 : 75} initialDelay={compact ? 420 : 1050} pauseDuration={1500} deletingSpeed={50} loop={false} showCursor cursorCharacter="_" cursorClassName="hero-type-cursor" cursorBlinkDuration={0.5} aria-hidden="true" />
         </h1>
+        {phone && <div className="mobile-hero-art" aria-hidden="true" />}
         <p>We build reliable websites, apps, automation tools, MVPs and custom software for businesses and founders ready to move forward.</p>
         <div className="hero-actions"><button className="btn cursor-target" onClick={onStart}>Start a Project <ArrowRight size={18} /></button><button className="btn btn-secondary cursor-target" onClick={() => scrollTo('services')}>View Services</button></div>
         {!phone && <div className="trust-row"><div><ShieldCheck /><span><b>Business first</b><small>Technology with purpose</small></span></div><div><Clock3 /><span><b>Clear delivery</b><small>No black box development</small></span></div></div>}
