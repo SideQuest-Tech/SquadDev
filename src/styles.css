@@ -273,13 +273,14 @@ footer { background:#000; }
 
 @media(max-width:600px){
   :root { --mobile-gutter:clamp(16px,4.8vw,20px); }
+  html,body,#root { background:#000; }
   .section { padding:68px 0; }
   .section-heading { margin-bottom:31px; }
   .section-heading h2 { font-size:clamp(29px,8.4vw,35px); }
   .section-heading p { font-size:15px; line-height:1.62; }
-  .hero { min-height:100vh; min-height:100svh; display:flex; flex-direction:column; background:#000; }
+  .hero { min-height:100vh; min-height:100svh; min-height:100dvh; display:flex; flex-direction:column; background:#000; }
   .hero.section-grid:before { opacity:.1; }
-  .hero-layout { flex:1 0 auto; min-height:calc(100svh - 68px); display:flex; align-items:stretch; justify-content:center; padding:clamp(16px,2.4svh,24px) 0 clamp(28px,4.5svh,44px); }
+  .hero-layout { flex:1 0 auto; min-height:calc(100vh - 68px); min-height:calc(100svh - 68px); min-height:calc(100dvh - 68px); display:flex; align-items:stretch; justify-content:center; padding:clamp(16px,2.4svh,24px) 0 clamp(28px,4.5svh,44px); }
   .hero-copy { width:100%; max-width:520px; min-width:0; margin:0 auto; display:grid; grid-template-columns:minmax(0,1fr); align-content:center; row-gap:clamp(10px,1.8svh,16px); }
   .hero h1 { margin:0; font-size:clamp(37px,11.4vw,48px); line-height:.98; }
   .hero h1 .vision-line,.hero h1 .quest-line { line-height:1.06; }
