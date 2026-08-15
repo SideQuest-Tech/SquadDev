@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ArrowRight, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, Clock3,
-  ExternalLink, Eye, Filter, Layers3, LockKeyhole, Mail, MapPin, Menu,
-  MessageSquare, Phone, Search, ShieldCheck, Sparkles, Trash2, X, Zap
+  Layers3, LockKeyhole, Mail, MapPin, Menu,
+  Phone, ShieldCheck, X, Zap
 } from 'lucide-react'
 import { needOptions, serviceLabel, services } from './data'
-import { requestStore, sessionStore } from './storage'
+import { clientSessionStore, cursorStore, sessionStore } from './storage'
 import brandImage from './favIcon.jpg'
 import DotField from './components/DotField/DotField'
 import TextType from './components/TextType/TextType'
 import TargetCursor from './components/TargetCursor'
 import CrmDashboard from './components/AdminDashboard'
 import ConceptsSection from './components/concepts/ConceptsSection'
+import ClientDashboard from './components/ClientDashboard/ClientDashboard'
 
 const emptyForm = {
   need: '', projectType: '', payments: '', booking: '', dashboard: '', branding: '',
@@ -44,7 +45,7 @@ function Logo({ onClick }) {
   return <button className="logo cursor-target" onClick={onClick} aria-label="SideQuest Tech home"><span className="logo-mark"><img src={brandImage} alt="" /></span><span>SideQuest <span>Tech</span></span></button>
 }
 
-function Navbar({ onStart, onAdmin }) {
+function Navbar({ onStart, onLogin }) {
   const [open, setOpen] = useState(false), [active, setActive] = useState('home')
   const mobile = useMediaQuery('(max-width: 800px)')
   useEffect(() => {
@@ -86,7 +87,7 @@ function Navbar({ onStart, onAdmin }) {
         <span className="menu-kicker">Navigation</span>
         <button className={`cursor-target ${active === 'home' ? 'active' : ''}`} aria-current={active === 'home' ? 'page' : undefined} onClick={() => go('home')}>Home</button><button className={`cursor-target ${active === 'services' ? 'active' : ''}`} aria-current={active === 'services' ? 'page' : undefined} onClick={() => go('services')}>Services</button>
         <button className={`cursor-target ${active === 'process' ? 'active' : ''}`} aria-current={active === 'process' ? 'page' : undefined} onClick={() => go('process')}>Process</button><button className={`cursor-target ${active === 'concepts' ? 'active' : ''}`} aria-current={active === 'concepts' ? 'page' : undefined} onClick={() => go('concepts')}>Concepts</button>
-        <button className="cursor-target" onClick={() => { onAdmin(); setOpen(false) }}>Admin Login</button>
+        <button className="cursor-target" onClick={() => { onLogin(); setOpen(false) }}>Login</button>
         <button className="btn btn-small cursor-target" onClick={() => { onStart(); setOpen(false) }}>Start a Project <ArrowRight size={15} /></button>
       </div>
     </nav>
@@ -213,16 +214,20 @@ function ProjectWizard({ initialService, onClose, onSubmitted }) {
   const submit = async () => {
     setSubmitting(true)
     const stamp = Date.now(), ref = `SQT-${new Date().getFullYear()}-${String(stamp).slice(-6)}`
-    const request = { ...data, id: stamp, reference: ref, status: 'New', createdAt: new Date().toISOString() }
-    requestStore.add(request)
+    const request = { ...data, id: stamp, reference: ref, status: 'New', createdAt: new Date().toISOString(), adminNotes: '' }
     try {
+      await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
+      })
       await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request)
       })
     } catch (err) {
-      console.error('[send-email]', err)
+      console.error('[submit]', err)
     }
     setSuccess(request); setSubmitting(false); onSubmitted?.()
   }
@@ -242,53 +247,126 @@ function ProjectWizard({ initialService, onClose, onSubmitted }) {
   </div></div>
 }
 
-function AdminLogin({ onLogin, onClose }) {
-  const [email, setEmail] = useState(''), [password, setPassword] = useState(''), [error, setError] = useState('')
-  const submit = e => { e.preventDefault(); if (email === 'admin@sidequesttech.co.za' && password === 'SideQuestTech2026') onLogin(); else setError('The email or password is incorrect.') }
-  return <div className="admin-page section-grid"><div className="admin-login"><button className="back-site cursor-target" onClick={onClose}><ChevronLeft /> Back to website</button><Logo onClick={onClose} /><div className="login-icon"><LockKeyhole /></div><div><div className="eyebrow">Secure workspace</div><h1>Admin login</h1><p>Manage incoming project requests and delivery status.</p></div><form onSubmit={submit}><Field label="Email address" name="email" value={email} onChange={e => { setEmail(e.target.value); setError('') }} type="email" required /><Field label="Password" name="password" value={password} onChange={e => { setPassword(e.target.value); setError('') }} type="password" required />{error && <div className="form-error">{error}</div>}<button className="btn cursor-target" type="submit">Sign in <ArrowRight /></button></form></div></div>
-}
+function UnifiedLogin({ setView }) {
+  const [email, setEmail] = useState(''), [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState(''), [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState(''), [loading, setLoading] = useState(false)
+  const [mustChange, setMustChange] = useState(false), [pendingToken, setPendingToken] = useState(null)
 
-const statusOptions = ['New', 'Reviewing', 'Contacted', 'In Progress', 'Completed']
+  const login = async e => {
+    e.preventDefault(); setError(''); setLoading(true)
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password })
+      })
+      const data = await res.json()
+      if (!data.ok) { setError(data.error || 'Invalid email or password.'); return }
+      if (data.role === 'admin') { sessionStore.set(true); setView('dashboard') }
+      else if (data.client.mustChangePassword) { setPendingToken(data.token); setMustChange(true) }
+      else { clientSessionStore.setToken(data.token); setView('client-dashboard') }
+    } catch { setError('Could not reach the server. Please try again.') }
+    finally { setLoading(false) }
+  }
 
-function AdminDashboard({ onLogout, onClose }) {
-  const [requests, setRequests] = useState(requestStore.get), [search, setSearch] = useState(''), [service, setService] = useState('All'), [status, setStatus] = useState('All'), [selected, setSelected] = useState(null)
-  const persist = next => { setRequests(next); requestStore.save(next) }
-  const updateStatus = (id, nextStatus) => { const next = requests.map(r => r.id === id ? { ...r, status: nextStatus } : r); persist(next); setSelected(s => s?.id === id ? { ...s, status: nextStatus } : s) }
-  const remove = id => { if (window.confirm('Delete this request permanently?')) { persist(requests.filter(r => r.id !== id)); setSelected(null) } }
-  const filtered = useMemo(() => requests.filter(r => {
-    const query = `${r.reference} ${r.fullName} ${r.company} ${r.email}`.toLowerCase()
-    return query.includes(search.toLowerCase()) && (service === 'All' || r.need === service) && (status === 'All' || r.status === status)
-  }), [requests, search, service, status])
-  const stats = [
-    ['Total requests', requests.length], ['New requests', requests.filter(r => r.status === 'New').length],
-    ['Website requests', requests.filter(r => r.need === 'website').length], ['App requests', requests.filter(r => r.need === 'app').length],
-    ['Automation requests', requests.filter(r => r.need === 'automation').length], ['Urgent requests', requests.filter(r => r.urgency === 'Urgent').length]
-  ]
-  return <div className="dashboard"><aside><Logo onClick={onClose} /><div className="side-label">Workspace</div><button className="side-active"><MessageSquare /> Project requests <span>{requests.length}</span></button><div className="side-foot"><button onClick={onClose}><ExternalLink /> View website</button><button onClick={onLogout}><LockKeyhole /> Sign out</button></div></aside><main><div className="dashboard-head"><div><div className="eyebrow">SideQuest Tech admin</div><h1>Project requests</h1><p>Review new opportunities and keep every conversation moving.</p></div><button className="btn btn-secondary" onClick={onClose}>View website <ExternalLink /></button></div><div className="stats-grid">{stats.map(([label, value], i) => <div className="stat-card" key={label}><span className={`stat-icon s${i}`}><Sparkles /></span><div><strong>{value}</strong><small>{label}</small></div></div>)}</div><section className="request-panel"><div className="panel-head"><div><h2>All requests</h2><span>{filtered.length} shown</span></div><div className="filters"><label className="search-box"><Search /><input placeholder="Search requests" value={search} onChange={e => setSearch(e.target.value)} /></label><label><Filter /><select value={service} onChange={e => setService(e.target.value)}><option>All</option>{needOptions.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label><label><select value={status} onChange={e => setStatus(e.target.value)}><option>All</option>{statusOptions.map(s => <option key={s}>{s}</option>)}</select></label></div></div>{filtered.length ? <div className="table-wrap"><table><thead><tr><th>Request</th><th>Client</th><th>Service</th><th>Budget</th><th>Timeline</th><th>Status</th><th /></tr></thead><tbody>{filtered.map(r => <tr key={r.id}><td><b>{r.reference}</b><small>{new Date(r.createdAt).toLocaleDateString()}</small></td><td><b>{r.fullName}</b><small>{r.company || r.email}</small></td><td>{serviceLabel(r.need)}</td><td>{r.budget}</td><td><span className={`urgency ${r.urgency?.toLowerCase()}`}>{r.urgency}</span><small>{r.launchDate}</small></td><td><select className={`status-select ${r.status.toLowerCase().replace(' ', '-')}`} value={r.status} onChange={e => updateStatus(r.id, e.target.value)}>{statusOptions.map(s => <option key={s}>{s}</option>)}</select></td><td><div className="table-actions"><button title="View details" onClick={() => setSelected(r)}><Eye /></button><button title="Delete request" onClick={() => remove(r.id)}><Trash2 /></button></div></td></tr>)}</tbody></table></div> : <div className="empty-state"><span><MessageSquare /></span><h3>No requests found</h3><p>{requests.length ? 'Try changing your search or filters.' : 'Submitted project requests will appear here.'}</p></div>}</section></main>
-    {selected && <div className="detail-overlay" onMouseDown={e => e.target === e.currentTarget && setSelected(null)}><div className="detail-drawer"><div className="detail-head"><div><small>Project request</small><h2>{selected.reference}</h2></div><button onClick={() => setSelected(null)}><X /></button></div><div className="detail-client"><div className="avatar">{selected.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2)}</div><div><h3>{selected.fullName}</h3><p>{selected.company || 'Independent project'}</p></div></div><div className="detail-status"><label>Status<select value={selected.status} onChange={e => updateStatus(selected.id, e.target.value)}>{statusOptions.map(s => <option key={s}>{s}</option>)}</select></label></div><div className="detail-section"><h4>Project overview</h4><Detail label="Service" value={serviceLabel(selected.need)} /><Detail label="Budget" value={selected.budget} /><Detail label="Desired launch" value={selected.launchDate} /><Detail label="Urgency" value={selected.urgency} /></div><div className="detail-section"><h4>Contact details</h4><Detail label="Email" value={selected.email} /><Detail label="Phone" value={selected.phone} /><Detail label="Preferred contact" value={selected.contactMethod} /></div><div className="detail-section"><h4>Full project profile</h4>{Object.entries(selected).filter(([k, v]) => v && !['id', 'reference', 'status', 'createdAt', 'fullName', 'company', 'email', 'phone', 'contactMethod', 'need'].includes(k)).map(([k, v]) => <Detail key={k} label={k.replace(/([A-Z])/g, ' $1')} value={v} />)}</div><button className="delete-full" onClick={() => remove(selected.id)}><Trash2 /> Delete request</button></div></div>}
+  const changePassword = async e => {
+    e.preventDefault(); setError('')
+    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
+    if (newPassword.length < 8) { setError('Password must be at least 8 characters'); return }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pendingToken}` },
+        body: JSON.stringify({ currentPassword: password, newPassword })
+      })
+      const data = await res.json()
+      if (!data.ok) { setError(data.error || 'Failed to update password'); return }
+      clientSessionStore.setToken(pendingToken); setView('client-dashboard')
+    } catch { setError('Could not reach the server. Please try again.') }
+    finally { setLoading(false) }
+  }
+
+  return <div className="admin-page section-grid">
+    <div className="admin-login">
+      <button className="back-site cursor-target" onClick={() => setView('site')}><ChevronLeft /> Back to website</button>
+      <Logo onClick={() => setView('site')} />
+      <div className="login-icon"><LockKeyhole /></div>
+      <div>
+        <div className="eyebrow">{mustChange ? 'Client portal' : 'Secure access'}</div>
+        <h1>{mustChange ? 'Set your password' : 'Sign in'}</h1>
+        <p>{mustChange ? 'This is your first login. Please set a new password before continuing.' : 'Enter your credentials to access your workspace.'}</p>
+      </div>
+      {!mustChange
+        ? <form onSubmit={login}>
+          <Field label="Email address" name="email" value={email} onChange={e => { setEmail(e.target.value); setError('') }} type="email" required />
+          <Field label="Password" name="password" value={password} onChange={e => { setPassword(e.target.value); setError('') }} type="password" required />
+          {error && <div className="form-error">{error}</div>}
+          <button className="btn cursor-target" type="submit" disabled={loading}>{loading ? 'Signing in…' : <>Sign in <ArrowRight /></>}</button>
+        </form>
+        : <form onSubmit={changePassword}>
+          <Field label="New password" name="newPassword" value={newPassword} onChange={e => { setNewPassword(e.target.value); setError('') }} type="password" required />
+          <Field label="Confirm new password" name="confirmPassword" value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setError('') }} type="password" required />
+          {error && <div className="form-error">{error}</div>}
+          <button className="btn cursor-target" type="submit" disabled={loading}>{loading ? 'Saving…' : <>Set password &amp; continue <ArrowRight /></>}</button>
+        </form>
+      }
+    </div>
   </div>
 }
 
-function Detail({ label, value }) { return <div className="detail-row"><span>{label}</span><p>{value || 'Not provided'}</p></div> }
+function Site({ onStart, onLogin }) {
+  return <><Navbar onStart={() => onStart()} onLogin={onLogin} /><main><Hero onStart={() => onStart()} /><Services onSelect={onStart} /><Values /><Process /><ConceptsSection /><Contact onStart={() => onStart()} /></main><Footer /></>
+}
 
-function Site({ onStart, onAdmin }) {
-  return <><Navbar onStart={() => onStart()} onAdmin={onAdmin} /><main><Hero onStart={() => onStart()} /><Services onSelect={onStart} /><Values /><Process /><ConceptsSection /><Contact onStart={() => onStart()} /></main><Footer /></>
+function CursorToast({ message }) {
+  if (!message) return null
+  return <div className="cursor-toast">{message}</div>
 }
 
 export default function App() {
-  const [view, setView] = useState(() => sessionStore.get() ? 'dashboard' : 'site')
+  const [view, setView] = useState(() => {
+    if (sessionStore.get()) return 'dashboard'
+    if (clientSessionStore.getPayload()) return 'client-dashboard'
+    return 'site'
+  })
   const [wizard, setWizard] = useState(false), [service, setService] = useState('')
+  const [cursorOn, setCursorOn] = useState(() => cursorStore.get())
+  const [cursorToast, setCursorToast] = useState('')
+
+  useEffect(() => {
+    const toastTimer = { id: null }
+    const handler = e => {
+      if (e.altKey && e.key === 'c') {
+        setCursorOn(prev => {
+          const next = !prev
+          cursorStore.set(next)
+          setCursorToast(next ? 'Custom cursor enabled' : 'Custom cursor disabled')
+          clearTimeout(toastTimer.id)
+          toastTimer.id = setTimeout(() => setCursorToast(''), 5000)
+          return next
+        })
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => { window.removeEventListener('keydown', handler); clearTimeout(toastTimer.id) }
+  }, [])
+
   const openWizard = (choice = '') => { setService(choice); setWizard(true) }
-  const login = () => { sessionStore.set(true); setView('dashboard') }
   const logout = () => { sessionStore.set(false); setView('site') }
+
   const content = view === 'login'
-    ? <AdminLogin onLogin={login} onClose={() => setView('site')} />
+    ? <UnifiedLogin setView={setView} />
     : view === 'dashboard'
       ? <CrmDashboard onLogout={logout} onClose={() => setView('site')} />
-      : <><Site onStart={openWizard} onAdmin={() => setView(sessionStore.get() ? 'dashboard' : 'login')} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
+      : view === 'client-dashboard'
+        ? <ClientDashboard setView={setView} />
+        : <><Site onStart={openWizard} onLogin={() => setView('login')} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
 
   return <>
-    {view === 'site' && <TargetCursor spinDuration={2} hideDefaultCursor parallaxOn hoverDuration={0.2} />}
+    {view === 'site' && <TargetCursor spinDuration={2} hideDefaultCursor parallaxOn hoverDuration={0.2} forceEnabled={cursorOn} />}
+    <CursorToast message={cursorToast} />
     {content}
   </>
 }
