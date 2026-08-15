@@ -32,7 +32,8 @@ export default function TargetCursor({
   spinDuration = 2,
   hideDefaultCursor = true,
   hoverDuration = 0.2,
-  parallaxOn = true
+  parallaxOn = true,
+  forceEnabled
 }) {
   const cursorRef = useRef(null)
   const cornersRef = useRef(null)
@@ -41,14 +42,14 @@ export default function TargetCursor({
   const targetCornerPositionsRef = useRef(null)
   const tickerFnRef = useRef(null)
   const activeStrengthRef = useRef(0)
-  const [enabled, setEnabled] = useState(false)
+  const [capable, setCapable] = useState(false)
 
   useEffect(() => {
     const desktopQuery = window.matchMedia('(min-width: 769px) and (hover: hover) and (pointer: fine)')
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     const update = () => {
       const hasTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window
-      setEnabled(desktopQuery.matches && !motionQuery.matches && !hasTouch)
+      setCapable(desktopQuery.matches && !motionQuery.matches && !hasTouch)
     }
     update()
     desktopQuery.addEventListener?.('change', update)
@@ -66,6 +67,8 @@ export default function TargetCursor({
     const offset = getContainingBlockOffset(containingBlockRef.current)
     gsap.to(cursorRef.current, { x: x - offset.x, y: y - offset.y, duration: 0.1, ease: 'power3.out' })
   }, [])
+
+  const enabled = capable && forceEnabled !== false
 
   useEffect(() => {
     if (!enabled || !cursorRef.current) return
@@ -272,7 +275,7 @@ export default function TargetCursor({
     }
   }, [constants, enabled, hideDefaultCursor, hoverDuration, moveCursor, parallaxOn, spinDuration, targetSelector])
 
-  if (!enabled) return null
+  if (!capable || forceEnabled === false) return null
 
   return <div ref={cursorRef} className="target-cursor-wrapper" aria-hidden="true">
     <div className="target-cursor-corner corner-tl" />

@@ -105,6 +105,6 @@ export default async function handler(req, res) {
     res.json({ ok: true })
   } catch (err) {
     console.error('[send-email]', err.message)
-    res.status(500).json({ ok: false, error: err.message })
+    res.status(500).json({ ok: false, error: 'Failed to send email. Please try again.' })
   }
 }
