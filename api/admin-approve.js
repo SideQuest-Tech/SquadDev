@@ -47,13 +47,11 @@ export default async function handler(req, res) {
   const clientKey = `client:${normalizedEmail}`
 
   try {
-    // Check if client already exists and is active
+    // Check if client already exists
     const existing = parseObj(await redis.get(clientKey))
-    if (existing && existing.isActive) {
-      return res.status(409).json({ ok: false, error: 'Client account already exists and is active' })
-    }
+    const isExistingClient = !!(existing && existing.isActive)
 
-    // Create or reuse ClickUp folder for this client
+    // Get or create ClickUp folder for this client
     let folderId = existing?.clickupFolderId
     if (!folderId) {
       const folderRes = await clickup(`/space/${process.env.CLICKUP_SPACE_ID}/folder`, {
@@ -78,23 +76,30 @@ export default async function handler(req, res) {
     }
     const listId = listRes.id
 
-    // Generate credentials
-    const tempPassword = generatePassword()
-    const passwordHash = await bcrypt.hash(tempPassword, 12)
+    // Only generate new credentials for new clients
+    let tempPassword = null
+    let passwordHash = existing?.passwordHash
 
-    // Write client record
-    const clientRecord = {
-      email: normalizedEmail,
-      passwordHash,
-      fullName,
-      company,
-      clickupFolderId: folderId,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      mustChangePassword: true,
-      requestId: requestId || null
+    if (!isExistingClient) {
+      tempPassword = generatePassword()
+      passwordHash = await bcrypt.hash(tempPassword, 12)
     }
-    await redis.set(clientKey, JSON.stringify(clientRecord))
+
+    // Create or update client record
+    if (!isExistingClient) {
+      const clientRecord = {
+        email: normalizedEmail,
+        passwordHash,
+        fullName,
+        company,
+        clickupFolderId: folderId,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        mustChangePassword: true,
+        requestId: requestId || null
+      }
+      await redis.set(clientKey, JSON.stringify(clientRecord))
+    }
 
     // Write project record
     const projectRecord = {
@@ -120,28 +125,53 @@ export default async function handler(req, res) {
     clientProjects.push(listId)
     await redis.set(`client_projects:${normalizedEmail}`, JSON.stringify(clientProjects))
 
-    // Send welcome email
-    await resend.emails.send({
-      from: 'SideQuest Tech <hello@sidequesttech.co.za>',
-      to: normalizedEmail,
-      subject: `Your ${company} project portal is ready`,
-      html: `
-        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a2a3a">
-          <h2 style="margin-bottom:4px">Hi ${fullName},</h2>
-          <p>Your project <strong>${projectName}</strong> has been approved and your client portal is ready.</p>
-          <p>Sign in with these credentials:</p>
-          <div style="background:#f3f6fa;border-radius:8px;padding:16px 20px;margin:20px 0">
-            <p style="margin:0 0 6px"><strong>Email:</strong> ${normalizedEmail}</p>
-            <p style="margin:0"><strong>Temporary password:</strong> ${tempPassword}</p>
+    // Send appropriate email based on client status
+    if (isExistingClient) {
+      // Existing client - notify about new project
+      await resend.emails.send({
+        from: 'SideQuest Tech <hello@sidequesttech.co.za>',
+        to: normalizedEmail,
+        subject: `New project added: ${projectName}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a2a3a">
+            <h2 style="margin-bottom:4px">Hi ${fullName},</h2>
+            <p>Great news! A new project <strong>${projectName}</strong> has been added to your account.</p>
+            <p>You can access it now in your client portal using your existing login credentials.</p>
+            <a href="https://www.sidequesttech.co.za" style="display:inline-block;margin-top:8px;padding:11px 22px;background:#2676ff;color:white;border-radius:7px;text-decoration:none;font-weight:700">View Project</a>
+            <p style="margin-top:28px;color:#8994a3;font-size:12px">SideQuest Tech · hello@sidequesttech.co.za</p>
           </div>
-          <p>You will be asked to change your password on first login.</p>
-          <a href="https://www.sidequesttech.co.za" style="display:inline-block;margin-top:8px;padding:11px 22px;background:#2676ff;color:white;border-radius:7px;text-decoration:none;font-weight:700">Open Client Portal</a>
-          <p style="margin-top:28px;color:#8994a3;font-size:12px">SideQuest Tech · hello@sidequesttech.co.za</p>
-        </div>
-      `
-    })
+        `
+      })
+    } else {
+      // New client - send welcome email with credentials
+      await resend.emails.send({
+        from: 'SideQuest Tech <hello@sidequesttech.co.za>',
+        to: normalizedEmail,
+        subject: `Your ${company} project portal is ready`,
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a2a3a">
+            <h2 style="margin-bottom:4px">Hi ${fullName},</h2>
+            <p>Your project <strong>${projectName}</strong> has been approved and your client portal is ready.</p>
+            <p>Sign in with these credentials:</p>
+            <div style="background:#f3f6fa;border-radius:8px;padding:16px 20px;margin:20px 0">
+              <p style="margin:0 0 6px"><strong>Email:</strong> ${normalizedEmail}</p>
+              <p style="margin:0"><strong>Temporary password:</strong> ${tempPassword}</p>
+            </div>
+            <p>You will be asked to change your password on first login.</p>
+            <a href="https://www.sidequesttech.co.za" style="display:inline-block;margin-top:8px;padding:11px 22px;background:#2676ff;color:white;border-radius:7px;text-decoration:none;font-weight:700">Open Client Portal</a>
+            <p style="margin-top:28px;color:#8994a3;font-size:12px">SideQuest Tech · hello@sidequesttech.co.za</p>
+          </div>
+        `
+      })
+    }
 
-    return res.status(200).json({ ok: true, tempPassword, folderId, listId })
+    return res.status(200).json({ 
+      ok: true, 
+      tempPassword: isExistingClient ? null : tempPassword, 
+      folderId, 
+      listId,
+      isExistingClient 
+    })
   } catch (err) {
     console.error('[admin-approve]', err)
     return res.status(500).json({ ok: false, error: 'Approval failed. Please try again.' })
