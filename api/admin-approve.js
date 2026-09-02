@@ -65,10 +65,19 @@ export default async function handler(req, res) {
       folderId = folderRes.id
     }
 
+    // Generate unique project name with timestamp + random suffix
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const timestamp = Date.now().toString().slice(-6)
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+    const uniqueSuffix = `${year}${month}-${timestamp}${random}`
+    const uniqueProjectName = `${projectName} [${uniqueSuffix}]`
+
     // Create ClickUp list for this project
     const listRes = await clickup(`/folder/${folderId}/list`, {
       method: 'POST',
-      body: JSON.stringify({ name: projectName })
+      body: JSON.stringify({ name: uniqueProjectName })
     })
     if (!listRes.id) {
       console.error('[admin-approve] ClickUp list creation failed', listRes)
@@ -104,7 +113,7 @@ export default async function handler(req, res) {
     // Write project record
     const projectRecord = {
       listId,
-      listName: projectName,
+      listName: uniqueProjectName,
       clientEmail: normalizedEmail,
       folderId,
       projectStatus: 'in_progress',

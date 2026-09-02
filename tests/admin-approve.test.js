@@ -101,7 +101,16 @@ describe('admin-approve API endpoint', () => {
       )
       expect(clientKey).toBeTruthy()
 
-      // Verify welcome email sent
+      // Verify project record with unique name
+      const projectKey = mockRedis.set.mock.calls.find(call => 
+        call[0].startsWith('project:')
+      )
+      expect(projectKey).toBeTruthy()
+      const projectData = JSON.parse(projectKey[1])
+      // Project name should have unique suffix like "Website Development [202609-123456ABCD]"
+      expect(projectData.listName).toMatch(/^Website Development \[\d{6}-\d{6}[A-Z0-9]{4}\]$/)
+
+      // Verify welcome email sent (uses clean project name without suffix)
       expect(mockResend.emails.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'john@example.com',
