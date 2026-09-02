@@ -304,6 +304,7 @@ function UnifiedLogin({ setView }) {
           <Field label="Password" name="password" value={password} onChange={e => { setPassword(e.target.value); setError('') }} type="password" required />
           {error && <div className="form-error">{error}</div>}
           <button className="btn cursor-target" type="submit" disabled={loading}>{loading ? 'Signing in…' : <>Sign in <ArrowRight /></>}</button>
+          <button type="button" className="cursor-target" onClick={() => setView('forgot-password')} style={{ marginTop: '12px', fontSize: '13px', color: '#2676ff', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Forgot password?</button>
         </form>
         : <form onSubmit={changePassword}>
           <Field label="New password" name="newPassword" value={newPassword} onChange={e => { setNewPassword(e.target.value); setError('') }} type="password" required />
@@ -312,6 +313,144 @@ function UnifiedLogin({ setView }) {
           <button className="btn cursor-target" type="submit" disabled={loading}>{loading ? 'Saving…' : <>Set password &amp; continue <ArrowRight /></>}</button>
         </form>
       }
+    </div>
+  </div>
+}
+
+function ForgotPassword({ setView }) {
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  const submit = async e => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
+      })
+      const data = await res.json()
+      if (!data.ok) {
+        setError(data.error || 'Failed to send reset email')
+        return
+      }
+      setSuccess(true)
+    } catch {
+      setError('Could not reach the server. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return <div className="admin-page section-grid">
+    <div className="admin-login">
+      <button className="back-site cursor-target" onClick={() => setView('login')}><ChevronLeft /> Back to login</button>
+      <Logo onClick={() => setView('site')} />
+      <div className="login-icon"><Mail /></div>
+      <div>
+        <div className="eyebrow">Password recovery</div>
+        <h1>Reset your password</h1>
+        <p>{success ? 'Check your email for a password reset link.' : 'Enter your email address and we\'ll send you a link to reset your password.'}</p>
+      </div>
+      {!success ? (
+        <form onSubmit={submit}>
+          <Field label="Email address" name="email" value={email} onChange={e => { setEmail(e.target.value); setError('') }} type="email" required />
+          {error && <div className="form-error">{error}</div>}
+          <button className="btn cursor-target" type="submit" disabled={loading}>
+            {loading ? 'Sending…' : <>Send reset link <ArrowRight /></>}
+          </button>
+        </form>
+      ) : (
+        <div style={{ padding: '24px', background: '#e8f5e9', borderRadius: '8px', marginTop: '16px' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#2e7d32' }}>
+            <strong>Email sent!</strong><br />
+            If an account exists with that email, you'll receive a password reset link shortly. The link will expire in 1 hour.
+          </p>
+          <button className="btn cursor-target" onClick={() => setView('login')} style={{ marginTop: '16px', width: '100%' }}>
+            Back to login
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+}
+
+function ResetPassword({ setView, resetToken }) {
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  const submit = async e => {
+    e.preventDefault()
+    setError('')
+    
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, newPassword })
+      })
+      const data = await res.json()
+      if (!data.ok) {
+        setError(data.error || 'Failed to reset password')
+        return
+      }
+      setSuccess(true)
+    } catch {
+      setError('Could not reach the server. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return <div className="admin-page section-grid">
+    <div className="admin-login">
+      <button className="back-site cursor-target" onClick={() => setView('login')}><ChevronLeft /> Back to login</button>
+      <Logo onClick={() => setView('site')} />
+      <div className="login-icon"><LockKeyhole /></div>
+      <div>
+        <div className="eyebrow">Password recovery</div>
+        <h1>Set new password</h1>
+        <p>{success ? 'Your password has been reset successfully!' : 'Enter a new password for your account.'}</p>
+      </div>
+      {!success ? (
+        <form onSubmit={submit}>
+          <Field label="New password" name="newPassword" value={newPassword} onChange={e => { setNewPassword(e.target.value); setError('') }} type="password" required minLength={8} />
+          <Field label="Confirm new password" name="confirmPassword" value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setError('') }} type="password" required />
+          {error && <div className="form-error">{error}</div>}
+          <button className="btn cursor-target" type="submit" disabled={loading}>
+            {loading ? 'Resetting…' : <>Reset password <ArrowRight /></>}
+          </button>
+        </form>
+      ) : (
+        <div style={{ padding: '24px', background: '#e8f5e9', borderRadius: '8px', marginTop: '16px' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#2e7d32' }}>
+            <CheckCircle2 style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }} />
+            <strong>Password reset successful!</strong><br />
+            You can now log in with your new password.
+          </p>
+          <button className="btn cursor-target" onClick={() => setView('login')} style={{ marginTop: '16px', width: '100%' }}>
+            Go to login
+          </button>
+        </div>
+      )}
     </div>
   </div>
 }
@@ -327,6 +466,9 @@ function CursorToast({ message }) {
 
 export default function App() {
   const [view, setView] = useState(() => {
+    // Check for reset token in URL
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('reset')) return 'reset-password'
     if (sessionStore.get()) return 'dashboard'
     if (clientSessionStore.getPayload()) return 'client-dashboard'
     return 'site'
@@ -334,6 +476,10 @@ export default function App() {
   const [wizard, setWizard] = useState(false), [service, setService] = useState('')
   const [cursorOn, setCursorOn] = useState(() => cursorStore.get())
   const [cursorToast, setCursorToast] = useState('')
+  const [resetToken, setResetToken] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('reset') || ''
+  })
 
   useEffect(() => {
     const toastTimer = { id: null }
@@ -358,11 +504,15 @@ export default function App() {
 
   const content = view === 'login'
     ? <UnifiedLogin setView={setView} />
-    : view === 'dashboard'
-      ? <CrmDashboard onLogout={logout} onClose={() => setView('site')} />
-      : view === 'client-dashboard'
-        ? <ClientDashboard setView={setView} />
-        : <><Site onStart={openWizard} onLogin={() => setView('login')} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
+    : view === 'forgot-password'
+      ? <ForgotPassword setView={setView} />
+      : view === 'reset-password'
+        ? <ResetPassword setView={setView} resetToken={resetToken} />
+        : view === 'dashboard'
+          ? <CrmDashboard onLogout={logout} onClose={() => setView('site')} />
+          : view === 'client-dashboard'
+            ? <ClientDashboard setView={setView} />
+            : <><Site onStart={openWizard} onLogin={() => setView('login')} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
 
   return <>
     {view === 'site' && <TargetCursor spinDuration={2} hideDefaultCursor parallaxOn hoverDuration={0.2} forceEnabled={cursorOn} />}
