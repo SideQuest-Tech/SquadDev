@@ -185,23 +185,25 @@ describe('Multi-Service Request Flow (Integration)', () => {
     const projectsAfter = JSON.parse(projectsDataAfter)
     expect(projectsAfter).toEqual(['list-1', 'list-2']) // ✅ Both projects
 
-    // Verify both project records exist
+    // Verify both project records exist with unique names
     const project1 = JSON.parse(mockRedis.data.get('project:list-1'))
     const project2 = JSON.parse(mockRedis.data.get('project:list-2'))
 
     expect(project1).toMatchObject({
       listId: 'list-1',
-      listName: 'Website Development',
       clientEmail: customerEmail,
       projectStatus: 'in_progress'
     })
+    // Verify unique name format: "Website Development [202609-123456ABCD]"
+    expect(project1.listName).toMatch(/^Website Development \[\d{6}-\d{6}[A-Z0-9]{4}\]$/)
 
     expect(project2).toMatchObject({
       listId: 'list-2',
-      listName: 'Mobile App Development',
       clientEmail: customerEmail,
       projectStatus: 'in_progress'
     })
+    // Verify unique name format for second project
+    expect(project2.listName).toMatch(/^Mobile App Development \[\d{6}-\d{6}[A-Z0-9]{4}\]$/)
   })
 
   it('should handle third service request for same customer', async () => {
@@ -258,5 +260,48 @@ describe('Multi-Service Request Flow (Integration)', () => {
     expect(global.fetch.mock.calls.filter(
       call => call[0].includes('/folder/') && call[0].includes('/list') && call[1]?.method === 'POST'
     )).toHaveLength(3)
+  })
+
+  it('should generate unique suffixes for duplicate project names', async () => {
+    const customerEmail = 'client@example.com'
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() }
+
+    // Create first "Website Development" project
+    await handler({
+      method: 'POST',
+      headers: { 'x-admin-secret': 'test-admin-secret' },
+      body: {
+        fullName: 'Test Client',
+        email: customerEmail,
+        company: 'Test Co',
+        projectName: 'Website Development'
+      }
+    }, res)
+
+    // Create second "Website Development" project (same name)
+    await handler({
+      method: 'POST',
+      headers: { 'x-admin-secret': 'test-admin-secret' },
+      body: {
+        fullName: 'Test Client',
+        email: customerEmail,
+        company: 'Test Co',
+        projectName: 'Website Development' // Same name as first
+      }
+    }, res)
+
+    // Verify both projects were created successfully
+    const projects = JSON.parse(mockRedis.data.get('client_projects:client@example.com'))
+    expect(projects).toHaveLength(2)
+
+    // Verify both have unique names with different timestamps
+    const project1 = JSON.parse(mockRedis.data.get('project:list-1'))
+    const project2 = JSON.parse(mockRedis.data.get('project:list-2'))
+
+    expect(project1.listName).toMatch(/^Website Development \[\d{6}-\d{6}[A-Z0-9]{4}\]$/)
+    expect(project2.listName).toMatch(/^Website Development \[\d{6}-\d{6}[A-Z0-9]{4}\]$/)
+    
+    // Verify the suffixes are different (random component ensures uniqueness)
+    expect(project1.listName).not.toBe(project2.listName)
   })
 })
