@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutGrid, List } from 'lucide-react'
+import { LayoutGrid, List, RefreshCw } from 'lucide-react'
 import TaskChat from './TaskChat'
 
 const priorityLabel = p => {
@@ -11,6 +11,17 @@ const priorityLabel = p => {
 const fmtDate = ts => {
   if (!ts) return null
   return new Date(Number(ts)).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' })
+}
+
+const fmtTime = date => {
+  if (!date) return ''
+  const now = new Date()
+  const diff = Math.floor((now - date) / 1000) // seconds
+  
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return date.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
 }
 
 function KanbanView({ tasks, onTaskClick }) {
@@ -77,14 +88,48 @@ function ListView({ tasks, onTaskClick }) {
   </div>
 }
 
-export default function TaskBoard({ tasks, loading, error, client }) {
+export default function TaskBoard({ tasks, loading, error, client, lastUpdated, onRefresh }) {
   const [boardView, setBoardView] = useState(() => localStorage.getItem('sidequest_board_view') || 'kanban')
   const [activeTask, setActiveTask] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const setView = v => { setBoardView(v); localStorage.setItem('sidequest_board_view', v) }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await onRefresh?.()
+    setTimeout(() => setRefreshing(false), 500) // Ensure spinner shows for at least 500ms
+  }
+
   return <>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '14px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {lastUpdated && (
+          <span style={{ fontSize: '11px', color: '#8a99ad' }}>
+            Updated {fmtTime(lastUpdated)}
+          </span>
+        )}
+        <button 
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{ 
+            padding: '6px 12px', 
+            fontSize: '12px', 
+            background: 'transparent', 
+            border: '1px solid #dfe4ea', 
+            borderRadius: '6px',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: '#1a2a3a'
+          }}
+        >
+          <RefreshCw size={12} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+          Refresh
+        </button>
+      </div>
+      
       <div className="cp-view-toggle">
         <button className={boardView === 'kanban' ? 'active' : ''} onClick={() => setView('kanban')}>
           <LayoutGrid size={13} /> Board
