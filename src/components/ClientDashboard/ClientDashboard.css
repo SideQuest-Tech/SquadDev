@@ -104,8 +104,12 @@
 .cp-chat-hours-summary { padding:12px 20px; background:#eef7f3; border-bottom:1px solid #d4e8dd; display:flex; align-items:center; gap:10px; color:#1e7d52; font-size:11px; }
 .cp-chat-hours-summary svg { width:16px; flex-shrink:0; }
 .cp-chat-hours-summary strong { color:#165c3d; }
-.cp-chat-hours-badge { display:inline-flex; align-items:center; gap:4px; background:#eef7f3; color:#1e7d52; padding:2px 7px; border-radius:9px; font-size:9px; font-weight:700; }
-.cp-chat-hours-badge svg { width:11px; }
+.cp-chat-sessions { padding:12px 20px; background:#f8fbf9; border-bottom:1px solid #d4e8dd; display:flex; flex-direction:column; gap:8px; }
+.cp-chat-session { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#fff; border:1px solid #e4eaf2; border-radius:7px; }
+.cp-session-time { font-size:10px; color:#607080; }
+.cp-session-info { display:flex; align-items:center; gap:12px; font-size:10px; }
+.cp-session-info span { color:#8a99ad; }
+.cp-session-info strong { color:#1e7d52; font-size:11px; }
 .cp-chat-messages { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
 .cp-chat-msg { display:flex; gap:9px; align-items:flex-start; }
 .cp-chat-msg.mine { flex-direction:row-reverse; }
