@@ -65,13 +65,23 @@ export default function ClientDashboard({ setView }) {
   // Fetch project list + real statuses from Redis
   useEffect(() => {
     if (!client) return
-    fetch('/api/client-projects', {
-      headers: { Authorization: `Bearer ${clientSessionStore.getToken()}` }
-    })
-      .then(r => r.json())
-      .then(data => { if (data.ok) setProjects(data.projects) })
-      .catch(console.error)
-      .finally(() => setProjectsLoading(false))
+    
+    const fetchProjects = () => {
+      fetch('/api/client-projects', {
+        headers: { Authorization: `Bearer ${clientSessionStore.getToken()}` }
+      })
+        .then(r => r.json())
+        .then(data => { if (data.ok) setProjects(data.projects) })
+        .catch(console.error)
+        .finally(() => setProjectsLoading(false))
+    }
+
+    fetchProjects()
+    
+    // Poll for project updates every 60 seconds
+    const interval = setInterval(fetchProjects, 60000)
+    
+    return () => clearInterval(interval)
   }, [client])
 
   const effectiveListId = selectedListId || projects[0]?.listId
@@ -81,7 +91,7 @@ export default function ClientDashboard({ setView }) {
   const isArchived = projectStatus === 'cancelled' || projectStatus === 'completed'
 
   // Skip ClickUp task fetch for archived projects (list is archived there too)
-  const { tasks, loading: tasksLoading, error: tasksError } = useClickUpTasks(isArchived ? null : effectiveListId)
+  const { tasks, loading: tasksLoading, error: tasksError, lastUpdated, refresh: refreshTasks } = useClickUpTasks(isArchived ? null : effectiveListId)
 
   // After all hooks, handle the null-client case
   if (!client) { logout(); return null }
@@ -161,7 +171,7 @@ export default function ClientDashboard({ setView }) {
                 : 'This project has been cancelled. Please contact us if you have any questions.'}
               </p>
             </div>
-            : <TaskBoard tasks={tasks} loading={tasksLoading} error={tasksError} client={client} />
+            : <TaskBoard tasks={tasks} loading={tasksLoading} error={tasksError} client={client} lastUpdated={lastUpdated} onRefresh={refreshTasks} />
           }
         </>
       )}
