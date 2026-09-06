@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Paperclip, X } from 'lucide-react'
+import { Paperclip, X, Clock } from 'lucide-react'
 import { useClickUpComments } from '../../hooks/useClickUp'
 
 const fmt = ts => {
@@ -12,11 +12,35 @@ const fmt = ts => {
   return d.toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' }) + ' · ' + time
 }
 
+// Extract hours from text in format [Xh] or [X.Xh] (e.g., [2h], [2.5h])
+const extractHours = (text) => {
+  const match = text?.match(/\[(\d+(?:\.\d+)?h)\]/i)
+  if (!match) return null
+  const hours = parseFloat(match[1].replace('h', ''))
+  return isNaN(hours) ? null : hours
+}
+
 // Client messages are stored as "[Name]: text" — parse to extract sender and body
 const parseComment = (c) => {
   const match = c.comment_text?.match(/^\[(.+?)\]: ([\s\S]*)/)
-  if (match) return { name: match[1], text: match[2], isClient: true }
-  return { name: 'SideQuest Tech', text: c.comment_text || '', isClient: false }
+  if (match) {
+    const hours = extractHours(match[2])
+    return { name: match[1], text: match[2], isClient: true, hours }
+  }
+  const hours = extractHours(c.comment_text)
+  return { name: 'SideQuest Tech', text: c.comment_text || '', isClient: false, hours }
+}
+
+// Calculate total billable hours from all developer messages
+const calculateTotalHours = (comments) => {
+  if (!comments?.length) return 0
+  return comments.reduce((total, c) => {
+    const parsed = parseComment(c)
+    if (!parsed.isClient && parsed.hours) {
+      return total + parsed.hours
+    }
+    return total
+  }, 0)
 }
 
 export default function TaskChat({ task, client, onClose }) {
@@ -25,6 +49,9 @@ export default function TaskChat({ task, client, onClose }) {
   const [sending, setSending] = useState(false)
   const fileRef = useRef(null)
   const bottomRef = useRef(null)
+
+  // Calculate total hours from developer messages
+  const totalHours = calculateTotalHours(comments)
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -65,14 +92,25 @@ export default function TaskChat({ task, client, onClose }) {
         <button onClick={onClose}><X size={14} /></button>
       </div>
 
+      {totalHours > 0 && (
+        <div className="cp-chat-hours-summary">
+          <Clock size={16} />
+          <span>
+            <strong>{totalHours.toFixed(1)} hours</strong> logged on this task
+          </span>
+        </div>
+      )}
+
       <div className="cp-chat-messages">
         {loading && <div className="cp-loading" />}
         {!loading && !comments?.length && (
           <div className="cp-chat-empty">No messages yet. Start the conversation below.</div>
         )}
         {comments?.map(c => {
-          const { name, text: body, isClient } = parseComment(c)
+          const { name, text: body, isClient, hours } = parseComment(c)
           const isMine = isClient && name === client?.name
+          const showHoursBadge = !isClient && hours
+          
           return <div key={c.id} className={`cp-chat-msg ${isMine ? 'mine' : ''}`}>
             {!isMine && (
               <div className="cp-chat-avatar team">
@@ -80,7 +118,14 @@ export default function TaskChat({ task, client, onClose }) {
               </div>
             )}
             <div className="cp-chat-bubble">
-              <strong>{isMine ? 'You' : name}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <strong>{isMine ? 'You' : name}</strong>
+                {showHoursBadge && (
+                  <span className="cp-chat-hours-badge">
+                    <Clock size={11} /> {hours}h
+                  </span>
+                )}
+              </div>
               <p>{body}</p>
               {c.attachments?.map((a, i) =>
                 a.url ? <img key={i} src={a.url} alt={a.title || 'attachment'} /> : null
