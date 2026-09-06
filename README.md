@@ -209,6 +209,27 @@ Keys follow a flat-key pattern (no key scanning — Upstash free tier compatible
 
 ---
 
+## Client project tracker
+
+This is separate from the ClickUp-backed client portal above: a lightweight tracker for delivery status, stored in the browser and edited from the admin **Client Trackers** view. Clients open **Track Project** in the nav (or visit `/#track`) and sign in with their email and an access code. The tracker shows the seven delivery stages, what is happening now, items waiting on the client, updates, deliverables with approvals, key dates and the payment schedule.
+
+Demo accounts (defined in `src/data/projects.js`):
+
+| Project | Email | Access code |
+|---|---|---|
+| Internet Athi official website (design and development in progress, launch 16 Sep) | `team@internetathi.com` | `ATHI-2026` |
+| Lumen Logistics operations dashboard (design stage) | `naledi@lumenlogistics.co.za` | `LUMEN-2026` |
+
+### Updating a tracker from the admin
+
+The admin dashboard has a **Client Trackers** view. Pick a project on the left and edit it in tabs: overview and client access, the seven stages with their steps, posted updates, deliverables (with client approvals), what is waiting on the client plus key dates, and the team, links, numbers and payments. Changes save as you type and appear in Track Project immediately. **Open client view** shows the tracker exactly as the client sees it, **Copy invite** copies the sign-in details, and a request in the CRM drawer can start a tracker prefilled from the lead.
+
+Project data lives in local storage under `sidequest_tech_projects`, seeded from `src/data/projects.js` on first use. Client ticks and approvals write into the same record, so the admin sees them. Access codes are checked in the browser only, like the admin login. Move the store and the checks behind an API in `/api` before inviting real clients.
+
+Files: `src/components/portal/` (client tracker), `src/components/admin/` (admin editor), `src/hooks/useProjects.js`, `src/data/projects.js` (seed data and helpers), `src/storage.js` (project store).
+
+---
+
 ## Concepts section
 
 The Concepts showcase is part of the main homepage. Content is data-driven from `src/data/concepts.js` and optimized previews live in `src/assets/concepts`.

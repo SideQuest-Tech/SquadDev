@@ -3,10 +3,14 @@ import {
   AlertTriangle, Archive, BarChart3, Bell, BellRing, Building2, CalendarClock,
   Check, CheckCircle2, ChevronRight, CircleDollarSign, ClipboardList, Columns3,
   Copy, Database, Download, ExternalLink, Eye, FolderKanban, Globe, Inbox, LayoutDashboard,
-  LogOut, Mail, Pause, Phone, Play, Plus, RotateCcw, Search, Settings, SlidersHorizontal,
+  ListChecks, LogOut, Mail, Pause, Phone, Play, Plus, RotateCcw, Search, Settings, SlidersHorizontal,
   Smartphone, Trash2, UserCog, UserRound, Wallet, Workflow, X
 } from 'lucide-react'
 import { needOptions, serviceLabel as getServiceLabel } from '../data'
+import { makeProject } from '../data/projects'
+import { projectStore } from '../storage'
+import { useProjects } from '../hooks/useProjects'
+import ClientTrackersView from './admin/ProjectsView'
 import brandImage from '../favIcon.jpg'
 
 const statusOptions = ['New', 'Reviewing', 'Contacted', 'In Progress', 'Completed', 'Approved', 'Archived']
@@ -98,15 +102,16 @@ function ViewHeader({ view, requests, onWebsite, onExport, onClearDemo }) {
     analytics: ['Analytics', 'Understand demand, priority, and the estimated value of your pipeline.'],
     settings: ['Settings', 'Prepare your workspace for future backend and team integrations.'],
     clients: ['Clients', 'Manage approved client accounts and add new projects.'],
-    projects: ['Project Tracking', 'Track active, paused, and completed projects for all clients.']
+    projects: ['Project Tracking', 'Track active, paused, and completed projects for all clients.'],
+    trackers: ['Client Trackers', 'Update each client tracker: stages, updates, deliverables and what you need from the client. Changes show in Track Project straight away.']
   }[view] || ['Admin', '']
   const demoCount = requests.filter(request => request.isDemo).length
   return <header className="crm-header">
     <div><div className="eyebrow">SideQuest Tech admin</div><h1>{copy[0]}</h1><p>{copy[1]}</p></div>
     <div className="crm-header-actions">
       <button className="crm-button secondary" onClick={onWebsite}><ExternalLink /> View Website</button>
-      <button className="crm-button secondary" onClick={onExport} disabled={!requests.length}><Download /> Export CSV</button>
-      {demoCount > 0 && <button className="crm-button danger" onClick={onClearDemo}><Trash2 /> Clear Demo Data</button>}
+      {view !== 'trackers' && <button className="crm-button secondary" onClick={onExport} disabled={!requests.length}><Download /> Export CSV</button>}
+      {view !== 'trackers' && demoCount > 0 && <button className="crm-button danger" onClick={onClearDemo}><Trash2 /> Clear Demo Data</button>}
       <div className="admin-pill"><span>SQ</span><div><strong>Administrator</strong><small>SideQuest Tech</small></div></div>
     </div>
   </header>
@@ -470,7 +475,7 @@ function ProjectsView({ adminSecret, showToast }) {
   </>
 }
 
-function RequestDrawer({ request, onClose, onStatus, onNotes, onDelete, onCopy, onApprove }) {
+function RequestDrawer({ request, onClose, onStatus, onNotes, onDelete, onCopy, onApprove, onCreateProject, linkedProject }) {
   const excluded = ['id', 'reference', 'status', 'createdAt', 'fullName', 'company', 'email', 'phone', 'contactMethod', 'need', 'budget', 'launchDate', 'urgency', 'adminNotes', 'isDemo']
   const answers = Object.entries(request).filter(([key, value]) => value && !excluded.includes(key))
   const summary = `${request.reference}\n${request.fullName}${request.company ? `, ${request.company}` : ''}\n${serviceLabel(request.need)}\nBudget: ${request.budget}\nTimeline: ${request.launchDate}\nUrgency: ${request.urgency}\n\n${request.problem || request.businessIdea || request.repetitiveTask || request.broken || ''}`
@@ -481,6 +486,10 @@ function RequestDrawer({ request, onClose, onStatus, onNotes, onDelete, onCopy, 
     <div className="drawer-actions"><button onClick={() => onCopy(request.email, 'Email copied')}><Mail /> Copy email</button><button onClick={() => onCopy(request.phone, 'Phone copied')}><Phone /> Copy phone</button><button onClick={() => onCopy(summary, 'Project summary copied')}><Copy /> Copy summary</button></div>
     <div className="drawer-status"><label>Status<select value={request.status} onChange={event => onStatus(request.id, event.target.value)}>{statusOptions.map(value => <option key={value}>{value}</option>)}</select></label></div>
     {canApprove && <button className="crm-button primary" style={{ width: '100%', marginBottom: '4px', justifyContent: 'center' }} onClick={() => onApprove(request)}><Check /> Approve request &amp; create client portal</button>}
+    <div className="drawer-project">
+      <button className="crm-button secondary" onClick={() => onCreateProject(request)}><ListChecks /> {linkedProject ? 'Open the client tracker' : 'Start a client tracker'}</button>
+      <small>{linkedProject ? `${linkedProject.name} is already tracked for ${request.email}.` : 'Creates a Track Project tracker prefilled from this request, with stages, updates and approvals the client can follow.'}</small>
+    </div>
     <section><h4>Contact details</h4><DetailRow label="Email" value={request.email} /><DetailRow label="Phone" value={request.phone} /><DetailRow label="Preferred contact" value={request.contactMethod} /></section>
     <section><h4>Project overview</h4><DetailRow label="Service" value={serviceLabel(request.need)} /><DetailRow label="Budget" value={request.budget} /><DetailRow label="Timeline" value={request.launchDate} /><DetailRow label="Urgency" value={request.urgency} /><DetailRow label="Must-have features" value={request.mustHave} /><DetailRow label="Nice-to-have features" value={request.niceToHave} /></section>
     <section><h4>Full project profile</h4>{answers.map(([key, value]) => <DetailRow key={key} label={key.replace(/([A-Z])/g, ' $1')} value={value} />)}</section>
@@ -489,8 +498,10 @@ function RequestDrawer({ request, onClose, onStatus, onNotes, onDelete, onCopy, 
   </aside></div>
 }
 
-export default function AdminDashboard({ onLogout, onClose }) {
+export default function AdminDashboard({ onLogout, onClose, onPreviewProject }) {
   const [requests, setRequests] = useState([])
+  const projects = useProjects()
+  const [selectedProjectId, setSelectedProjectId] = useState('')
   const [loadingRequests, setLoadingRequests] = useState(true)
   const [activeView, setActiveView] = useState('overview')
   const [selectedId, setSelectedId] = useState(null)
@@ -574,6 +585,32 @@ export default function AdminDashboard({ onLogout, onClose }) {
   const setFilter = (name, value) => setFilters(current => ({ ...current, [name]: value }))
   const copy = async (value, message) => {
     try { await navigator.clipboard.writeText(value || 'Not provided'); showToast(message) } catch { showToast('Copy was not available') }
+  }
+  // Client trackers (Track Project). A request can start one prefilled from the lead.
+  const projectForEmail = email => projects.find(project => String(project.client?.email || '').toLowerCase() === String(email || '').toLowerCase()) || null
+  const createProjectFromRequest = request => {
+    const existing = projectForEmail(request.email)
+    if (!existing) {
+      const service = ['website', 'app', 'software', 'automation', 'mvp', 'design', 'consulting', 'existing'].includes(request.need) ? request.need : 'software'
+      const kind = request.need === 'unsure' ? 'project' : serviceLabel(request.need).toLowerCase()
+      const project = makeProject({
+        name: `${request.company || request.fullName} ${kind}`,
+        clientName: request.fullName,
+        company: request.company,
+        email: request.email,
+        service,
+        targetLaunch: /^\d{4}-\d{2}-\d{2}$/.test(request.launchDate) ? request.launchDate : '',
+        summary: request.problem || request.businessIdea || request.repetitiveTask || request.broken || request.desiredResult || ''
+      }, projects)
+      projectStore.add(project)
+      if (['New', 'Reviewing', 'Contacted'].includes(request.status)) updateStatus(request.id, 'In Progress')
+      setSelectedProjectId(project.id)
+      showToast('Client tracker created from the request')
+    } else {
+      setSelectedProjectId(existing.id)
+    }
+    setSelectedId(null)
+    setActiveView('trackers')
   }
   const exportCsv = () => {
     const headings = ['Reference', 'Client name', 'Company', 'Email', 'Phone', 'Service type', 'Budget', 'Timeline', 'Urgency', 'Status', 'Submitted date', 'Notes']
@@ -809,7 +846,7 @@ function MeetingsView({ adminSecret, showToast }) {
   </>
 }
 
-  const showMetrics = !['settings', 'clients', 'projects', 'meetings'].includes(activeView)
+  const showMetrics = !['settings', 'clients', 'projects', 'meetings', 'trackers'].includes(activeView)
   const navigation = [
     [LayoutDashboard, 'overview', 'Overview'],
     [ClipboardList, 'requests', 'Project Requests'],
@@ -817,12 +854,13 @@ function MeetingsView({ adminSecret, showToast }) {
     [BarChart3, 'analytics', 'Analytics'],
     [UserRound, 'clients', 'Clients'],
     [FolderKanban, 'projects', 'Projects'],
+    [ListChecks, 'trackers', 'Client Trackers'],
     [CalendarClock, 'meetings', 'Meetings'],
     [Settings, 'settings', 'Settings']
   ]
 
   return <div className="crm-dashboard">
-    <aside className="crm-sidebar"><Brand onClick={onClose} /><div className="crm-admin-label"><span>Admin</span><small>Internal CRM</small></div><nav>{navigation.map(([Icon, value, label]) => <button className={activeView === value ? 'active' : ''} key={value} onClick={() => setActiveView(value)}><Icon />{label}{value === 'requests' && <span>{requests.length}</span>}</button>)}</nav><div className="crm-sidebar-foot"><button onClick={onClose}><ExternalLink /> View Website</button><button onClick={onLogout}><LogOut /> Sign Out</button></div></aside>
+    <aside className="crm-sidebar"><Brand onClick={onClose} /><div className="crm-admin-label"><span>Admin</span><small>Internal CRM</small></div><nav>{navigation.map(([Icon, value, label]) => <button className={activeView === value ? 'active' : ''} key={value} onClick={() => setActiveView(value)}><Icon />{label}{value === 'requests' && requests.length > 0 && <span>{requests.length}</span>}{value === 'trackers' && projects.length > 0 && <span>{projects.length}</span>}</button>)}</nav><div className="crm-sidebar-foot"><button onClick={onClose}><ExternalLink /> View Website</button><button onClick={onLogout}><LogOut /> Sign Out</button></div></aside>
     <main className="crm-main">
       <ViewHeader view={activeView} requests={requests} onWebsite={onClose} onExport={exportCsv} onClearDemo={clearDemo} />
       {showMetrics && <DashboardMetrics requests={requests} />}
@@ -833,10 +871,11 @@ function MeetingsView({ adminSecret, showToast }) {
       {!loadingRequests && activeView === 'analytics' && <AnalyticsView requests={requests} />}
       {activeView === 'clients' && <ClientsView adminSecret={adminSecret} showToast={showToast} />}
       {activeView === 'projects' && <ProjectsView adminSecret={adminSecret} showToast={showToast} />}
+      {activeView === 'trackers' && <ClientTrackersView selectedId={selectedProjectId} onSelect={setSelectedProjectId} onPreview={onPreviewProject} onCopy={copy} onToast={showToast} />}
       {activeView === 'meetings' && <MeetingsView adminSecret={adminSecret} showToast={showToast} />}
       {activeView === 'settings' && <SettingsView />}
     </main>
-    {selected && <RequestDrawer request={selected} onClose={() => setSelectedId(null)} onStatus={updateStatus} onNotes={(id, adminNotes) => updateRequest(id, { adminNotes })} onDelete={remove} onCopy={copy} onApprove={req => { setApprovalTarget(req); setSelectedId(null) }} />}
+    {selected && <RequestDrawer request={selected} onClose={() => setSelectedId(null)} onStatus={updateStatus} onNotes={(id, adminNotes) => updateRequest(id, { adminNotes })} onDelete={remove} onCopy={copy} onCreateProject={createProjectFromRequest} linkedProject={projectForEmail(selected.email)} onApprove={req => { setApprovalTarget(req); setSelectedId(null) }} />}
     {approvalTarget && <ApprovalModal request={approvalTarget} onClose={() => setApprovalTarget(null)} onApproved={id => { updateStatus(id, 'Approved'); showToast('Client approved') }} showToast={showToast} />}
     {toast && <div className="crm-toast"><Check /> {toast}</div>}
   </div>

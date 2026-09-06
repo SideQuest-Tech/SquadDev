@@ -5,7 +5,7 @@ import {
   Phone, ShieldCheck, X, Zap
 } from 'lucide-react'
 import { needOptions, serviceLabel, services } from './data'
-import { clientSessionStore, cursorStore, sessionStore } from './storage'
+import { clientSessionStore, cursorStore, portalSessionStore, sessionStore } from './storage'
 import brandImage from './favIcon.jpg'
 import DotField from './components/DotField/DotField'
 import TextType from './components/TextType/TextType'
@@ -13,6 +13,8 @@ import TargetCursor from './components/TargetCursor'
 import CrmDashboard from './components/AdminDashboard'
 import ConceptsSection from './components/concepts/ConceptsSection'
 import ClientDashboard from './components/ClientDashboard/ClientDashboard'
+import ClientLogin from './components/portal/ClientLogin'
+import ClientPortal from './components/portal/ClientPortal'
 
 const emptyForm = {
   need: '', projectType: '', payments: '', booking: '', dashboard: '', branding: '',
@@ -45,7 +47,7 @@ function Logo({ onClick }) {
   return <button className="logo cursor-target" onClick={onClick} aria-label="SideQuest Tech home"><span className="logo-mark"><img src={brandImage} alt="" /></span><span>SideQuest <span>Tech</span></span></button>
 }
 
-function Navbar({ onStart, onLogin }) {
+function Navbar({ onStart, onLogin, onTrack }) {
   const [open, setOpen] = useState(false), [active, setActive] = useState('home')
   const mobile = useMediaQuery('(max-width: 800px)')
   useEffect(() => {
@@ -87,6 +89,7 @@ function Navbar({ onStart, onLogin }) {
         <span className="menu-kicker">Navigation</span>
         <button className={`cursor-target ${active === 'home' ? 'active' : ''}`} aria-current={active === 'home' ? 'page' : undefined} onClick={() => go('home')}>Home</button><button className={`cursor-target ${active === 'services' ? 'active' : ''}`} aria-current={active === 'services' ? 'page' : undefined} onClick={() => go('services')}>Services</button>
         <button className={`cursor-target ${active === 'process' ? 'active' : ''}`} aria-current={active === 'process' ? 'page' : undefined} onClick={() => go('process')}>Process</button><button className={`cursor-target ${active === 'concepts' ? 'active' : ''}`} aria-current={active === 'concepts' ? 'page' : undefined} onClick={() => go('concepts')}>Concepts</button>
+        <button className="cursor-target" onClick={() => { onTrack(); setOpen(false) }}>Track Project</button>
         <button className="cursor-target" onClick={() => { onLogin(); setOpen(false) }}>Login</button>
         <button className="btn btn-small cursor-target" onClick={() => { onStart(); setOpen(false) }}>Start a Project <ArrowRight size={15} /></button>
       </div>
@@ -172,8 +175,8 @@ function Contact({ onStart }) {
   return <section id="contact" className="section contact-section"><div className="container"><div className="contact-panel section-grid"><div><div className="eyebrow">Let us build what is next</div><h2>Have a problem worth solving?</h2><p>Tell us what is getting in the way. You do not need a technical specification to start the conversation.</p><button className="btn btn-light cursor-target" onClick={onStart}>Start your project request <ArrowRight /></button></div><div className="contact-details"><a className="cursor-target" href="mailto:hello@sidequesttech.co.za"><Mail /> <span><small>Email</small>hello@sidequesttech.co.za</span></a><a className="cursor-target" href="tel:+27686955513"><Phone /> <span><small>Phone</small>+27 68 695 5513</span></a><div><MapPin /> <span><small>Location</small>South Africa</span></div></div></div></div></section>
 }
 
-function Footer() {
-  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button><button className="cursor-target" onClick={() => scrollTo('concepts')}>Concepts</button></div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><span>South Africa</span><span>SideQuest Tech (Pty) Ltd</span><span>Enterprise no. 2026/488079/07</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
+function Footer({ onTrack }) {
+  return <footer><div className="container footer-main"><div><Logo onClick={() => scrollTo('home')} /><p>Your Vision. Our Next Quest.</p></div><div><h4>Company</h4><button className="cursor-target" onClick={() => scrollTo('services')}>Services</button><button className="cursor-target" onClick={() => scrollTo('process')}>Process</button><button className="cursor-target" onClick={() => scrollTo('concepts')}>Concepts</button></div><div><h4>Start here</h4><a className="cursor-target" href="mailto:hello@sidequesttech.co.za">hello@sidequesttech.co.za</a><button className="cursor-target" onClick={onTrack}>Track your project</button><span>South Africa</span><span>SideQuest Tech (Pty) Ltd</span><span>Enterprise no. 2026/488079/07</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SideQuest Tech. All rights reserved.</span><span>Engineered with intent.</span></div></footer>
 }
 
 function Field({ label, name, value, onChange, type = 'text', required, placeholder, children }) {
@@ -316,8 +319,8 @@ function UnifiedLogin({ setView }) {
   </div>
 }
 
-function Site({ onStart, onLogin }) {
-  return <><Navbar onStart={() => onStart()} onLogin={onLogin} /><main><Hero onStart={() => onStart()} /><Services onSelect={onStart} /><Values /><Process /><ConceptsSection /><Contact onStart={() => onStart()} /></main><Footer /></>
+function Site({ onStart, onLogin, onTrack }) {
+  return <><Navbar onStart={() => onStart()} onLogin={onLogin} onTrack={onTrack} /><main><Hero onStart={() => onStart()} /><Services onSelect={onStart} /><Values /><Process /><ConceptsSection /><Contact onStart={() => onStart()} /></main><Footer onTrack={onTrack} /></>
 }
 
 function CursorToast({ message }) {
@@ -329,6 +332,7 @@ export default function App() {
   const [view, setView] = useState(() => {
     if (sessionStore.get()) return 'dashboard'
     if (clientSessionStore.getPayload()) return 'client-dashboard'
+    if (portalSessionStore.get()) return 'portal'
     return 'site'
   })
   const [wizard, setWizard] = useState(false), [service, setService] = useState('')
@@ -356,13 +360,36 @@ export default function App() {
   const openWizard = (choice = '') => { setService(choice); setWizard(true) }
   const logout = () => { sessionStore.set(false); setView('site') }
 
-  const content = view === 'login'
-    ? <UnifiedLogin setView={setView} />
-    : view === 'dashboard'
-      ? <CrmDashboard onLogout={logout} onClose={() => setView('site')} />
-      : view === 'client-dashboard'
-        ? <ClientDashboard setView={setView} />
-        : <><Site onStart={openWizard} onLogin={() => setView('login')} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
+  // Track Project: the access-code client tracker, separate from the ClickUp-backed client dashboard.
+  const openTracker = () => setView(portalSessionStore.get() ? 'portal' : 'portal-login')
+  const portalLogin = projectId => { portalSessionStore.set(projectId); setView('portal') }
+  const portalLogout = () => { portalSessionStore.set(''); setView('site') }
+  // Admins can open any tracker as the client would see it, without a client session.
+  const [previewProject, setPreviewProject] = useState('')
+  const previewTracker = projectId => { setPreviewProject(projectId); setView('portal-preview') }
+
+  // Emails and messages can deep-link straight to the tracker with /#track,
+  // on a fresh load or when the hash changes while the site is already open.
+  useEffect(() => {
+    const checkHash = () => {
+      if (window.location.hash !== '#track') return
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      openTracker()
+    }
+    checkHash()
+    window.addEventListener('hashchange', checkHash)
+    return () => window.removeEventListener('hashchange', checkHash)
+  }, [])
+
+  const views = {
+    login: <UnifiedLogin setView={setView} />,
+    dashboard: <CrmDashboard onLogout={logout} onClose={() => setView('site')} onPreviewProject={previewTracker} />,
+    'client-dashboard': <ClientDashboard setView={setView} />,
+    'portal-login': <ClientLogin onLogin={portalLogin} onClose={() => setView('site')} />,
+    portal: <ClientPortal projectId={portalSessionStore.get()} onLogout={portalLogout} onClose={() => setView('site')} />,
+    'portal-preview': <ClientPortal projectId={previewProject} preview onLogout={() => setView('dashboard')} onClose={() => setView('dashboard')} />
+  }
+  const content = views[view] || <><Site onStart={openWizard} onLogin={() => setView('login')} onTrack={openTracker} />{wizard && <ProjectWizard initialService={service} onClose={() => setWizard(false)} />}</>
 
   return <>
     {view === 'site' && <TargetCursor spinDuration={2} hideDefaultCursor parallaxOn hoverDuration={0.2} forceEnabled={cursorOn} />}
