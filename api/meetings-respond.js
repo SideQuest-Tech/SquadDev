@@ -2,6 +2,7 @@ import { Redis } from '@upstash/redis'
 import { google } from 'googleapis'
 import { Resend } from 'resend'
 import jwt from 'jsonwebtoken'
+import { createLogger } from './_logger.js'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -105,6 +106,10 @@ async function sendDeclineEmail(meeting) {
 }
 
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-meetings-respond', traceId)
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
   const admin = isAdmin(req)
@@ -134,7 +139,8 @@ export default async function handler(req, res) {
 
     if (action === 'decline') {
       await redis.set(`meeting:${meetingId}`, JSON.stringify({ ...meeting, status: 'declined' }))
-      try { await sendDeclineEmail(meeting) } catch (e) { console.error('[meetings-respond decline email]', e) }
+      try { await sendDeclineEmail(meeting) } catch (e) { log.warn('Decline email failed', { message: e.message }) }
+      log.info('Meeting declined', { meetingId })
       return res.status(200).json({ ok: true })
     }
 
@@ -145,18 +151,19 @@ export default async function handler(req, res) {
       meetLink = result.meetLink
       calendarEventId = result.calendarEventId
     } catch (err) {
-      console.error('[meetings-respond Google Calendar]', err)
+      log.error('Google Calendar event creation failed', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Failed to create Google Meet. Check Google credentials.' })
     }
 
     const updated = { ...meeting, status: 'accepted', confirmedTime, meetLink, calendarEventId }
     await redis.set(`meeting:${meetingId}`, JSON.stringify(updated))
 
-    try { await sendConfirmationEmail(updated) } catch (e) { console.error('[meetings-respond confirm email]', e) }
+    try { await sendConfirmationEmail(updated) } catch (e) { log.warn('Confirmation email failed', { message: e.message }) }
 
+    log.info('Meeting accepted', { meetingId })
     return res.status(200).json({ ok: true, meetLink })
   } catch (err) {
-    console.error('[meetings-respond]', err)
+    log.error('Failed to process meeting response', { message: err.message })
     return res.status(500).json({ ok: false, error: 'Failed to process response.' })
   }
 }

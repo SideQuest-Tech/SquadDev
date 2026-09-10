@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis'
 import bcrypt from 'bcryptjs'
 import { Resend } from 'resend'
+import { createLogger } from './_logger.js'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -33,6 +34,10 @@ const generatePassword = () => {
 }
 
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-admin-approve', traceId)
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' })
   if (req.headers['x-admin-secret'] !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' })
@@ -59,7 +64,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({ name: company })
       })
       if (!folderRes.id) {
-        console.error('[admin-approve] ClickUp folder creation failed', folderRes)
+        log.error('ClickUp folder creation failed', { response: folderRes.err || 'no id returned' })
         return res.status(500).json({ ok: false, error: 'Failed to create project folder. Check ClickUp configuration.' })
       }
       folderId = folderRes.id
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({ name: uniqueProjectName })
     })
     if (!listRes.id) {
-      console.error('[admin-approve] ClickUp list creation failed', listRes)
+      log.error('ClickUp list creation failed', { folderId, response: listRes.err || 'no id returned' })
       return res.status(500).json({ ok: false, error: 'Failed to create project list. Check ClickUp configuration.' })
     }
     const listId = listRes.id
@@ -174,15 +179,16 @@ export default async function handler(req, res) {
       })
     }
 
-    return res.status(200).json({ 
-      ok: true, 
-      tempPassword: isExistingClient ? null : tempPassword, 
-      folderId, 
+    log.info('Client approved', { listId, folderId, isExistingClient })
+    return res.status(200).json({
+      ok: true,
+      tempPassword: isExistingClient ? null : tempPassword,
+      folderId,
       listId,
-      isExistingClient 
+      isExistingClient
     })
   } catch (err) {
-    console.error('[admin-approve]', err)
+    log.error('Approval failed', { message: err.message })
     return res.status(500).json({ ok: false, error: 'Approval failed. Please try again.' })
   }
 }

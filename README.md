@@ -55,6 +55,7 @@ cp .env.example .env
 | `GOOGLE_CLIENT_ID` | Google OAuth2 client ID (for Google Meet creation) |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth2 client secret |
 | `GOOGLE_REFRESH_TOKEN` | Long-lived refresh token (generated once via `scripts/google-auth.js`) |
+| `VITE_SENTRY_DSN` | Sentry DSN for frontend error and log capture (optional — Sentry is disabled if unset) |
 
 > **Resend domain** — to send from `hello@sidequesttech.co.za`, verify the domain in Resend → Domains.
 >
@@ -86,7 +87,17 @@ node --env-file=.env scripts/setup-admin.js admin@sidequesttech.co.za YourSecure
 
 This writes a `sidequest_admin` key to Redis with a bcrypt-hashed password. After running it, the hardcoded credentials are not used anywhere.
 
-### 2. Get a Google refresh token
+### 2. Set up Sentry (optional)
+
+1. Create a project at [sentry.io](https://sentry.io) — select **React** as the platform
+2. Copy the DSN from **Settings → Projects → [your project] → Client Keys**
+3. Add it as `VITE_SENTRY_DSN` in your `.env` and in the Cloudflare Pages dashboard
+
+In production, all `logger.info/warn/error` calls are sent to Sentry silently — nothing appears in the browser console. In development, logs print to the browser console only and Sentry is not used.
+
+Configure three environments in the Sentry dashboard: `development`, `staging`, `production`.
+
+### 3. Get a Google refresh token
 
 Run this once to authorise Google Calendar access for auto-creating Google Meet links:
 

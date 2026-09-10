@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { createLogger } from './_logger.js'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -8,6 +9,11 @@ const redis = new Redis({
 })
 
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-change-password', traceId)
+
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
   const auth = req.headers.authorization || ''
@@ -35,7 +41,10 @@ export default async function handler(req, res) {
 
     const record = typeof raw === 'string' ? JSON.parse(raw) : raw
     const match = await bcrypt.compare(currentPassword, record.passwordHash)
-    if (!match) return res.status(401).json({ ok: false, error: 'Current password is incorrect' })
+    if (!match) {
+      log.warn('Password change failed — wrong current password')
+      return res.status(401).json({ ok: false, error: 'Current password is incorrect' })
+    }
 
     const newHash = await bcrypt.hash(newPassword, 12)
     await redis.set(`client:${payload.sub}`, JSON.stringify({
@@ -44,9 +53,10 @@ export default async function handler(req, res) {
       mustChangePassword: false
     }))
 
+    log.info('Password changed successfully')
     return res.status(200).json({ ok: true })
   } catch (err) {
-    console.error('[change-password]', err)
+    log.error('Password change error', { message: err.message })
     return res.status(500).json({ ok: false, error: 'Could not update password. Please try again.' })
   }
 }

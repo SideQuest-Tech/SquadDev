@@ -1,9 +1,17 @@
 import { Redis } from '@upstash/redis'
+import { createLogger } from './_logger.js'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN
 })
+
+const CLICKUP_BASE = 'https://api.clickup.com/api/v2'
+const clickup = (path, options = {}) =>
+  fetch(`${CLICKUP_BASE}${path}`, {
+    ...options,
+    headers: { Authorization: process.env.CLICKUP_API_TOKEN, 'Content-Type': 'application/json', ...options.headers }
+  }).then(r => r.json())
 
 const parseArr = raw => {
   if (!raw) return []
@@ -17,14 +25,12 @@ const parseObj = raw => {
   try { return JSON.parse(raw) } catch { return null }
 }
 
-const CLICKUP_BASE = 'https://api.clickup.com/api/v2'
-const clickup = (path, options = {}) =>
-  fetch(`${CLICKUP_BASE}${path}`, {
-    ...options,
-    headers: { Authorization: process.env.CLICKUP_API_TOKEN, 'Content-Type': 'application/json', ...options.headers }
-  }).then(r => r.json())
-
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-projects', traceId)
+
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.headers['x-admin-secret'] !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' })
   }
@@ -51,9 +57,11 @@ export default async function handler(req, res) {
         })
       )
 
-      return res.status(200).json({ ok: true, projects: projects.filter(Boolean) })
+      const result = projects.filter(Boolean)
+      log.info('Projects fetched', { count: result.length, ...(email && { forEmail: '[redacted]' }) })
+      return res.status(200).json({ ok: true, projects: result })
     } catch (err) {
-      console.error('[projects GET]', err)
+      log.error('Failed to fetch projects', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Failed to load projects.' })
     }
   }
@@ -83,7 +91,6 @@ export default async function handler(req, res) {
         } else if (newStatus === 'cancelled' || newStatus === 'completed') {
           updates.archivedAt = new Date().toISOString()
           updates.pauseReason = null
-          // Archive the ClickUp list
           await clickup(`/list/${listId}`, {
             method: 'PUT',
             body: JSON.stringify({ archived: true })
@@ -91,12 +98,13 @@ export default async function handler(req, res) {
         }
 
         await redis.set(`project:${listId}`, JSON.stringify({ ...project, ...updates }))
+        log.info('Project status updated', { listId, newStatus })
         return res.status(200).json({ ok: true })
       }
 
       return res.status(400).json({ ok: false, error: `Unknown action: ${action}` })
     } catch (err) {
-      console.error('[projects POST]', err)
+      log.error('Project action failed', { action, listId, message: err.message })
       return res.status(500).json({ ok: false, error: 'Action failed. Please try again.' })
     }
   }

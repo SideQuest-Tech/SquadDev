@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis'
 import jwt from 'jsonwebtoken'
+import { createLogger } from './_logger.js'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -41,7 +42,10 @@ async function addToIndexes(id, clientEmail) {
 }
 
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-meetings', traceId)
   res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('X-Trace-Id', traceId)
 
   if (req.method === 'GET') {
     const admin = isAdmin(req)
@@ -65,9 +69,10 @@ export default async function handler(req, res) {
         })
       )).filter(Boolean)
 
+      log.info('Meetings fetched', { count: meetings.length, role: admin ? 'admin' : 'client' })
       return res.status(200).json({ ok: true, meetings })
     } catch (err) {
-      console.error('[meetings GET]', err)
+      log.error('Failed to fetch meetings', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Failed to load meetings.' })
     }
   }
@@ -112,9 +117,10 @@ export default async function handler(req, res) {
         await addToIndexes(id, client.sub)
       }
 
+      log.info('Meeting created', { id, proposedBy: admin ? 'admin' : 'client' })
       return res.status(201).json({ ok: true, id })
     } catch (err) {
-      console.error('[meetings POST]', err)
+      log.error('Failed to create meeting', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Failed to create meeting.' })
     }
   }

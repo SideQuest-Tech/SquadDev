@@ -1,0 +1,2 @@
+/* Tailwind v4 — utilities only, no Preflight reset to avoid conflicting with styles.css */
+@import "tailwindcss/utilities";

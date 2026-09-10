@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import { createLogger } from './_logger.js'
 
 const CLICKUP_BASE = 'https://api.clickup.com/api/v2'
 
@@ -18,6 +19,10 @@ const extractFolderIdFromPath = path => {
 }
 
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-clickup-proxy', traceId)
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
   const auth = req.headers.authorization || ''
@@ -69,9 +74,10 @@ export default async function handler(req, res) {
 
     const upstream = await fetch(`${CLICKUP_BASE}${path}${qs}`, fetchOptions)
     const data = await upstream.json()
+    log.info('ClickUp proxied', { method, path: path.split('?')[0], status: upstream.status })
     return res.status(upstream.status).json(data)
   } catch (err) {
-    console.error('[clickup-proxy]', err)
+    log.error('ClickUp proxy error', { message: err.message })
     return res.status(500).json({ ok: false, error: 'Request failed. Please try again.' })
   }
 }

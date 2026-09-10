@@ -74,7 +74,7 @@ describe('Multi-Service Request Flow (Integration)', () => {
 
     const customerEmail = 'sarah@acmecorp.com'
     const req = { status: vi.fn().mockReturnThis(), json: vi.fn() }
-    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() }
+    const res = { setHeader: vi.fn(), status: vi.fn().mockReturnThis(), json: vi.fn() }
 
     // ─────────────────────────────────────────────────────────────────────
     // STEP 1: Customer requests Website Development (First Service)
@@ -208,7 +208,7 @@ describe('Multi-Service Request Flow (Integration)', () => {
 
   it('should handle third service request for same customer', async () => {
     const customerEmail = 'john@startup.io'
-    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() }
+    const res = { setHeader: vi.fn(), status: vi.fn().mockReturnThis(), json: vi.fn() }
 
     // First service
     await handler({
@@ -264,7 +264,7 @@ describe('Multi-Service Request Flow (Integration)', () => {
 
   it('should generate unique suffixes for duplicate project names', async () => {
     const customerEmail = 'client@example.com'
-    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() }
+    const res = { setHeader: vi.fn(), status: vi.fn().mockReturnThis(), json: vi.fn() }
 
     // Create first "Website Development" project
     await handler({

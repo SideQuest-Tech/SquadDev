@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis'
 import jwt from 'jsonwebtoken'
+import { createLogger } from './_logger.js'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -7,6 +8,11 @@ const redis = new Redis({
 })
 
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-client-projects', traceId)
+
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
   const auth = req.headers.authorization || ''
@@ -33,9 +39,11 @@ export default async function handler(req, res) {
       })
     )
 
-    return res.status(200).json({ ok: true, projects: projects.filter(Boolean) })
+    const result = projects.filter(Boolean)
+    log.info('Client projects fetched', { count: result.length })
+    return res.status(200).json({ ok: true, projects: result })
   } catch (err) {
-    console.error('[client-projects]', err)
+    log.error('Failed to fetch client projects', { message: err.message })
     return res.status(500).json({ ok: false, error: 'Failed to load projects.' })
   }
 }

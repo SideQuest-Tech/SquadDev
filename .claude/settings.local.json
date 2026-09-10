@@ -1,8 +1,30 @@
 {
+  "env": {
+    "CLICKUP_API_TOKEN": "pk_302610244_SE80J3E3K2K459M818BHPCVCDVBIC6CT"
+  },
   "permissions": {
     "allow": [
       "Bash(npm install *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(node -e \"require\\('tailwindcss'\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(git merge *)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/tailwindcss/package.json'\\).version\\)\")",
+      "Bash(npx vite *)",
+      "Bash(npm uninstall *)",
+      "WebFetch(domain:21st.dev)",
+      "Skill(update-config)",
+      "Bash(xargs grep *)",
+      "Bash(npx playwright *)",
+      "Bash(npx wrangler *)",
+      "Bash(curl -s -X PATCH https://api.cloudflare.com/client/v4/accounts/8b36d4574c09596386a9d0bf55f4c994/pages/projects/sidequest-tech -H 'Authorization: Bearer cfoat_6UOdGLWOT4t_5CoHtRNrviD8QhqFyTRJbbpKKAdeMXI.ZVD6Ix07rH2fHlNV0LeJF3Ni_tCQaJzJE2HriA5sXrY' -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(python -m json.tool --no-ensure-ascii)",
+      "Bash(python -m json.tool)",
+      "Bash(curl *)",
+      "Bash(kill %1)",
+      "Bash(wait)"
     ]
   }
 }

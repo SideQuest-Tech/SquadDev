@@ -82,6 +82,7 @@ describe('admin-approve API endpoint', () => {
       }
 
       const res = {
+        setHeader: vi.fn(),
         status: vi.fn().mockReturnThis(),
         json: vi.fn()
       }
@@ -152,6 +153,7 @@ describe('admin-approve API endpoint', () => {
       }
 
       const res = {
+        setHeader: vi.fn(),
         status: vi.fn().mockReturnThis(),
         json: vi.fn()
       }
@@ -194,6 +196,7 @@ describe('admin-approve API endpoint', () => {
       }
 
       const res = {
+        setHeader: vi.fn(),
         status: vi.fn().mockReturnThis(),
         json: vi.fn()
       }
@@ -220,6 +223,7 @@ describe('admin-approve API endpoint', () => {
       }
 
       const res = {
+        setHeader: vi.fn(),
         status: vi.fn().mockReturnThis(),
         json: vi.fn()
       }

@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis'
+import { createLogger } from './_logger.js'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -25,6 +26,11 @@ const parseObj = raw => {
 }
 
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-clients', traceId)
+
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.headers['x-admin-secret'] !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' })
   }
@@ -41,9 +47,11 @@ export default async function handler(req, res) {
           return safe
         })
       )
-      return res.status(200).json({ ok: true, clients: clients.filter(Boolean) })
+      const result = clients.filter(Boolean)
+      log.info('Clients fetched', { count: result.length })
+      return res.status(200).json({ ok: true, clients: result })
     } catch (err) {
-      console.error('[clients GET]', err)
+      log.error('Failed to fetch clients', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Failed to load clients.' })
     }
   }
@@ -62,33 +70,33 @@ export default async function handler(req, res) {
 
       if (action === 'deactivate') {
         await redis.set(clientKey, JSON.stringify({ ...record, isActive: false }))
-        // Archive the ClickUp folder
         if (record.clickupFolderId) {
           await clickup(`/folder/${record.clickupFolderId}`, {
             method: 'PUT',
             body: JSON.stringify({ archived: true })
           })
         }
+        log.info('Client deactivated', { company: record.company })
         return res.status(200).json({ ok: true })
       }
 
       if (action === 'reactivate') {
         await redis.set(clientKey, JSON.stringify({ ...record, isActive: true }))
-        // Unarchive the ClickUp folder
         if (record.clickupFolderId) {
           await clickup(`/folder/${record.clickupFolderId}`, {
             method: 'PUT',
             body: JSON.stringify({ archived: false })
           })
         }
+        log.info('Client reactivated', { company: record.company })
         return res.status(200).json({ ok: true })
       }
 
       if (action === 'remove') {
-        // Hard delete from Redis and remove from index
         await redis.del(clientKey)
         const emails = parseArr(await redis.get('approved_clients'))
         await redis.set('approved_clients', JSON.stringify(emails.filter(e => e !== normalizedEmail)))
+        log.info('Client removed', { company: record.company })
         return res.status(200).json({ ok: true })
       }
 
@@ -99,9 +107,9 @@ export default async function handler(req, res) {
           body: JSON.stringify({ name: projectName })
         })
         if (!listRes.id) {
-        console.error('[clients add-project] ClickUp list creation failed', listRes)
-        return res.status(500).json({ ok: false, error: 'Failed to create project list. Check ClickUp configuration.' })
-      }
+          log.error('ClickUp list creation failed', { response: JSON.stringify(listRes) })
+          return res.status(500).json({ ok: false, error: 'Failed to create project list. Check ClickUp configuration.' })
+        }
 
         const projectRecord = {
           listId: listRes.id,
@@ -119,12 +127,13 @@ export default async function handler(req, res) {
         clientProjects.push(listRes.id)
         await redis.set(`client_projects:${normalizedEmail}`, JSON.stringify(clientProjects))
 
+        log.info('Project added to client', { listId: listRes.id, company: record.company })
         return res.status(200).json({ ok: true, listId: listRes.id })
       }
 
       return res.status(400).json({ ok: false, error: `Unknown action: ${action}` })
     } catch (err) {
-      console.error('[clients POST]', err)
+      log.error('Client action failed', { action, message: err.message })
       return res.status(500).json({ ok: false, error: 'Action failed. Please try again.' })
     }
   }

@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis'
+import { createLogger } from './_logger.js'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -6,7 +7,6 @@ const redis = new Redis({
 })
 
 const KEY = 'sidequest_requests'
-
 const isAdmin = req => req.headers['x-admin-secret'] === process.env.ADMIN_SECRET
 
 const getAll = async () => {
@@ -20,21 +20,24 @@ const saveAll = async (requests) => {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-requests', traceId)
 
-  // GET — list all requests (admin only)
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.method === 'GET') {
     if (!isAdmin(req)) return res.status(401).json({ ok: false, error: 'Unauthorized' })
     try {
       const requests = await getAll()
+      log.info('Requests fetched', { count: requests.length })
       return res.status(200).json({ ok: true, requests })
     } catch (err) {
-      console.error('[requests GET]', err)
+      log.error('Failed to fetch requests', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Something went wrong. Please try again.' })
     }
   }
 
-  // POST — create a new request (public — form submission)
   if (req.method === 'POST') {
     try {
       const request = req.body
@@ -42,33 +45,32 @@ export default async function handler(req, res) {
         return res.status(400).json({ ok: false, error: 'Invalid request payload' })
       }
       const requests = await getAll()
-      // Prevent duplicates
       if (requests.some(r => r.id === request.id)) {
         return res.status(200).json({ ok: true, message: 'Already exists' })
       }
       await saveAll([request, ...requests])
+      log.info('Project request created', { id: request.id, need: request.need })
       return res.status(201).json({ ok: true })
     } catch (err) {
-      console.error('[requests POST]', err)
+      log.error('Failed to create request', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Something went wrong. Please try again.' })
     }
   }
 
-  // PUT — replace the full requests array (admin only — used by dashboard saves)
   if (req.method === 'PUT') {
     if (!isAdmin(req)) return res.status(401).json({ ok: false, error: 'Unauthorized' })
     try {
       const { requests } = req.body || {}
       if (!Array.isArray(requests)) return res.status(400).json({ ok: false, error: 'requests array required' })
       await saveAll(requests)
+      log.info('Requests bulk updated', { count: requests.length })
       return res.status(200).json({ ok: true })
     } catch (err) {
-      console.error('[requests PUT]', err)
+      log.error('Failed to bulk update requests', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Something went wrong. Please try again.' })
     }
   }
 
-  // DELETE — remove one request by id (admin only)
   if (req.method === 'DELETE') {
     if (!isAdmin(req)) return res.status(401).json({ ok: false, error: 'Unauthorized' })
     try {
@@ -76,9 +78,10 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ ok: false, error: 'id required' })
       const requests = await getAll()
       await saveAll(requests.filter(r => r.id !== id))
+      log.info('Request deleted', { id })
       return res.status(200).json({ ok: true })
     } catch (err) {
-      console.error('[requests DELETE]', err)
+      log.error('Failed to delete request', { message: err.message })
       return res.status(500).json({ ok: false, error: 'Something went wrong. Please try again.' })
     }
   }

@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { createLogger } from './_logger.js'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = 'SideQuest Tech <hello@sidequesttech.co.za>'
@@ -79,6 +80,10 @@ function buildConfirmationHtml(r) {
 }
 
 export default async function handler(req, res) {
+  const traceId = req.headers['x-trace-id'] ?? crypto.randomUUID()
+  const log = createLogger('fn-send-email', traceId)
+  res.setHeader('X-Trace-Id', traceId)
+
   if (req.method !== 'POST') return res.status(405).end()
 
   const r = req.body
@@ -102,9 +107,10 @@ export default async function handler(req, res) {
         html: buildConfirmationHtml(r)
       })
     ])
+    log.info('Project request emails sent', { reference: r.reference })
     res.json({ ok: true })
   } catch (err) {
-    console.error('[send-email]', err.message)
+    log.error('Failed to send project request emails', { message: err.message })
     res.status(500).json({ ok: false, error: 'Failed to send email. Please try again.' })
   }
 }
