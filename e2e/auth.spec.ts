@@ -45,4 +45,60 @@ test.describe('Auth / login', () => {
     await page.getByRole('button', { name: /Sign in/i }).click()
     await expect(page.locator('.auth-error')).toBeVisible({ timeout: 10000 })
   })
+
+  test('login view shows Forgot password link', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('.nav-login').click()
+    await expect(page.getByRole('button', { name: /Forgot password/i })).toBeVisible()
+  })
+
+  test('Forgot password link opens the forgot form', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('.nav-login').click()
+    await page.getByRole('button', { name: /Forgot password/i }).click()
+    await expect(page.locator('.auth-form input[type="email"]')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Send temporary password/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Back to login/i })).toBeVisible()
+    await expect(page.locator('.auth-form input[type="password"]')).not.toBeVisible()
+  })
+
+  test('Back to login from forgot form restores login view', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('.nav-login').click()
+    await page.getByRole('button', { name: /Forgot password/i }).click()
+    await page.getByRole('button', { name: /Back to login/i }).click()
+    await expect(page.locator('.auth-form input[type="password"]')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Sign in/i })).toBeVisible()
+  })
+
+  test('forgot password email pre-fills from login form', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('.nav-login').click()
+    await page.locator('.auth-form input[type="email"]').fill('client@company.com')
+    await page.getByRole('button', { name: /Forgot password/i }).click()
+    await expect(page.locator('.auth-form input[type="email"]')).toHaveValue('client@company.com')
+  })
+
+  test('forgot password form submits and shows confirmation', async ({ page }) => {
+    await page.route('**/api/forgot-password', route => route.fulfill({ status: 200, body: JSON.stringify({ ok: true }) }))
+    await page.goto('/')
+    await page.locator('.nav-login').click()
+    await page.getByRole('button', { name: /Forgot password/i }).click()
+    await page.locator('.auth-form input[type="email"]').fill('client@company.com')
+    await page.getByRole('button', { name: /Send temporary password/i }).click()
+    await expect(page.locator('.auth-forgot-hint')).toContainText('on its way')
+    await expect(page.getByRole('button', { name: /Back to login/i })).toBeVisible()
+  })
+
+  test('Back to login from confirmation restores login view', async ({ page }) => {
+    await page.route('**/api/forgot-password', route => route.fulfill({ status: 200, body: JSON.stringify({ ok: true }) }))
+    await page.goto('/')
+    await page.locator('.nav-login').click()
+    await page.getByRole('button', { name: /Forgot password/i }).click()
+    await page.locator('.auth-form input[type="email"]').fill('client@company.com')
+    await page.getByRole('button', { name: /Send temporary password/i }).click()
+    await page.getByRole('button', { name: /Back to login/i }).click()
+    await expect(page.locator('.auth-form input[type="password"]')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Sign in/i })).toBeVisible()
+  })
 })

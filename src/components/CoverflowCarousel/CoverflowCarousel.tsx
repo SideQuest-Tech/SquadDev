@@ -134,7 +134,7 @@ export default function CoverflowCarousel(): React.ReactElement {
             key={concept.id}
             ref={el => { cardRefs.current[i] = el }}
             className={`coverflow-card${i === active ? ' is-active' : ''}`}
-            onClick={() => { if (i !== active) { Sentry.metrics.increment('site.concept_viewed', 1, { tags: { concept: concept.name } }); goTo(i) } }}
+            onClick={() => { if (i !== active) { Sentry.metrics.count('site.concept_viewed', 1, { tags: { concept: concept.name } }); goTo(i) } }}
           >
             <div className="cf-bar">
               <span className="cf-dots"><i /><i /><i /></span>
@@ -161,7 +161,7 @@ export default function CoverflowCarousel(): React.ReactElement {
       <div className="cf-info" key={activeConcept.id}>
         <p className="cf-category">{activeConcept.category}</p>
         <h3 className="cf-name">{activeConcept.name}</h3>
-        <a className="btn" href={activeConcept.url} target="_blank" rel="noopener noreferrer" onClick={() => Sentry.metrics.increment('site.concept_link_clicked', 1, { tags: { concept: activeConcept.name } })}>
+        <a className="btn" href={activeConcept.url} target="_blank" rel="noopener noreferrer" onClick={() => Sentry.metrics.count('site.concept_link_clicked', 1, { tags: { concept: activeConcept.name } })}>
           View Concept <ExternalLink size={13} />
         </a>
       </div>
@@ -171,7 +171,7 @@ export default function CoverflowCarousel(): React.ReactElement {
           <button
             key={c.id}
             className={`cf-dot${i === active ? ' active' : ''}`}
-            onClick={() => { Sentry.metrics.increment('site.concept_viewed', 1, { tags: { concept: concepts[i].name } }); goTo(i) }}
+            onClick={() => { Sentry.metrics.count('site.concept_viewed', 1, { tags: { concept: concepts[i].name } }); goTo(i) }}
             aria-label={`Show ${c.name}`}
           />
         ))}

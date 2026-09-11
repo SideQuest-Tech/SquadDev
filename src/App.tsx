@@ -92,7 +92,7 @@ function Navbar({ onStart, onLogin }: NavbarProps): React.ReactElement {
   useEffect(() => { if (!mobile) setOpen(false) }, [mobile])
 
   const go = (id: string) => {
-    Sentry.metrics.increment('site.nav_clicked', 1, { tags: { section: id } })
+    Sentry.metrics.count('site.nav_clicked', 1, { tags: { section: id } })
     setActive(id)
     setOpen(false)
     requestAnimationFrame(() => scrollTo(id))
@@ -126,8 +126,8 @@ function Navbar({ onStart, onLogin }: NavbarProps): React.ReactElement {
           <button className={active === 'services' ? 'active' : ''} onClick={() => go('services')}>Services</button>
           <button className={active === 'process'  ? 'active' : ''} onClick={() => go('process')}>Process</button>
           <button className={active === 'concepts' ? 'active' : ''} onClick={() => go('concepts')}>Concepts</button>
-          <button className="nav-login" onClick={() => { Sentry.metrics.increment('site.login_clicked', 1, { tags: { source: 'navbar' } }); onLogin(); setOpen(false) }}>Login</button>
-          <button className="btn btn-small" onClick={() => { Sentry.metrics.increment('site.cta_clicked', 1, { tags: { source: 'navbar' } }); onStart(); setOpen(false) }}>
+          <button className="nav-login" onClick={() => { Sentry.metrics.count('site.login_clicked', 1, { tags: { source: 'navbar' } }); onLogin(); setOpen(false) }}>Login</button>
+          <button className="btn btn-small" onClick={() => { Sentry.metrics.count('site.cta_clicked', 1, { tags: { source: 'navbar' } }); onStart(); setOpen(false) }}>
             Start a Project <ArrowRight size={14} />
           </button>
         </div>
@@ -198,10 +198,10 @@ function Hero({ onStart }: HeroProps): React.ReactElement {
           </h1>
           <p className="hero-tagline">Websites. Apps. Software. Built right.</p>
           <div className="hero-actions">
-            <button className="btn" onClick={() => { Sentry.metrics.increment('site.cta_clicked', 1, { tags: { source: 'hero' } }); onStart() }}>
+            <button className="btn" onClick={() => { Sentry.metrics.count('site.cta_clicked', 1, { tags: { source: 'hero' } }); onStart() }}>
               Start a Project <ArrowRight size={16} />
             </button>
-            <button className="btn btn-ghost" onClick={() => { Sentry.metrics.increment('site.nav_clicked', 1, { tags: { section: 'concepts' } }); scrollTo('concepts') }}>
+            <button className="btn btn-ghost" onClick={() => { Sentry.metrics.count('site.nav_clicked', 1, { tags: { section: 'concepts' } }); scrollTo('concepts') }}>
               View Concepts ↓
             </button>
           </div>
@@ -231,7 +231,7 @@ function Services({ onSelect }: ServicesProps): React.ReactElement {
               <button
                 key={svc.short}
                 className={`bento-svc${i === 0 ? ' featured' : ''}`}
-                onClick={() => { Sentry.metrics.increment('site.service_selected', 1, { tags: { service: svc.short } }); onSelect(svc.short) }}
+                onClick={() => { Sentry.metrics.count('site.service_selected', 1, { tags: { service: svc.short } }); onSelect(svc.short) }}
               >
                 <Icon className="bento-icon" size={i === 0 ? 32 : 24} strokeWidth={1.4} />
                 <span className="bento-name">{svc.name}</span>
@@ -330,10 +330,10 @@ function ClosingCTA({ onStart }: ClosingCTAProps): React.ReactElement {
         <h2 className="closing-heading">
           Ready to build<br />something?
         </h2>
-        <button className="btn" onClick={() => { Sentry.metrics.increment('site.cta_clicked', 1, { tags: { source: 'closing' } }); onStart() }}>
+        <button className="btn" onClick={() => { Sentry.metrics.count('site.cta_clicked', 1, { tags: { source: 'closing' } }); onStart() }}>
           Start a Project <ArrowRight size={16} />
         </button>
-        <a className="closing-email" href="mailto:hello@sidequesttech.co.za" onClick={() => Sentry.metrics.increment('site.email_clicked', 1, { tags: { source: 'closing' } })}>
+        <a className="closing-email" href="mailto:hello@sidequesttech.co.za" onClick={() => Sentry.metrics.count('site.email_clicked', 1, { tags: { source: 'closing' } })}>
           hello@sidequesttech.co.za
         </a>
       </div>
@@ -361,13 +361,13 @@ function Footer({ onLogin }: FooterProps): React.ReactElement {
             <button onClick={() => scrollTo('concepts')}>Concepts</button>
           </div>
           <div className="footer-right">
-            <button className="footer-login" onClick={() => { Sentry.metrics.increment('site.login_clicked', 1, { tags: { source: 'footer' } }); onLogin() }}>Client login</button>
+            <button className="footer-login" onClick={() => { Sentry.metrics.count('site.login_clicked', 1, { tags: { source: 'footer' } }); onLogin() }}>Client login</button>
           </div>
         </div>
         <div className="footer-bottom">
           <div className="footer-contact">
             <span><MapPin size={11} /> Cape Town, South Africa</span>
-            <a href="mailto:hello@sidequesttech.co.za" onClick={() => Sentry.metrics.increment('site.email_clicked', 1, { tags: { source: 'footer' } })}><Mail size={11} /> hello@sidequesttech.co.za</a>
+            <a href="mailto:hello@sidequesttech.co.za" onClick={() => Sentry.metrics.count('site.email_clicked', 1, { tags: { source: 'footer' } })}><Mail size={11} /> hello@sidequesttech.co.za</a>
           </div>
           <span className="footer-copyright">© {new Date().getFullYear()} SideQuest Tech Pty Ltd. All rights reserved.</span>
         </div>
@@ -497,7 +497,7 @@ function ProjectWizard({ initialService, onClose, onSubmitted }: ProjectWizardPr
     return ''
   }
 
-  const next = () => { const msg = validate(); if (msg) return setError(msg); Sentry.metrics.increment('wizard.step_completed', 1, { tags: { step: String(step) } }); setStep(s => Math.min(4, s + 1)); setError('') }
+  const next = () => { const msg = validate(); if (msg) return setError(msg); Sentry.metrics.count('wizard.step_completed', 1, { tags: { step: String(step) } }); setStep(s => Math.min(4, s + 1)); setError('') }
 
   const submit = async () => {
     setSubmitting(true)
@@ -507,7 +507,7 @@ function ProjectWizard({ initialService, onClose, onSubmitted }: ProjectWizardPr
       await fetch('/api/requests', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(request) })
       await fetch('/api/send-email', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(request) })
     } catch (err) { logger.error('Request submission failed', { message: (err as Error).message }) }
-    Sentry.metrics.increment('wizard.submitted', 1, { tags: { service: data.need } })
+    Sentry.metrics.count('wizard.submitted', 1, { tags: { service: data.need } })
     setSuccess(request); setSubmitting(false); onSubmitted?.()
   }
 
@@ -543,7 +543,7 @@ function ProjectWizard({ initialService, onClose, onSubmitted }: ProjectWizardPr
           ))}
         </div>
         <div className="wizard-body">
-          {step === 0 && <><div className="wizard-title"><span>01</span><div><h2>What do you need help with?</h2><p>Choose the closest fit. You can add context in the next step.</p></div></div><div className="option-grid">{needOptions.map(([value, label]) => <button key={value} onClick={() => { Sentry.metrics.increment('wizard.service_selected', 1, { tags: { service: value } }); setData(d => ({ ...d, need: value })); setError('') }} className={data.need === value ? 'selected' : ''}><span><CircleDot /></span>{label}<Check /></button>)}</div></>}
+          {step === 0 && <><div className="wizard-title"><span>01</span><div><h2>What do you need help with?</h2><p>Choose the closest fit. You can add context in the next step.</p></div></div><div className="option-grid">{needOptions.map(([value, label]) => <button key={value} onClick={() => { Sentry.metrics.count('wizard.service_selected', 1, { tags: { service: value } }); setData(d => ({ ...d, need: value })); setError('') }} className={data.need === value ? 'selected' : ''}><span><CircleDot /></span>{label}<Check /></button>)}</div></>}
           {step === 1 && <><div className="wizard-title"><span>02</span><div><h2>Tell us a little more</h2><p>Plain language is perfect. We will help shape the technical details.</p></div></div><div className="form-grid"><ConditionalQuestions data={data} onChange={change} /></div></>}
           {step === 2 && <><div className="wizard-title"><span>03</span><div><h2>Budget and timing</h2><p>This helps us recommend a realistic delivery path.</p></div></div><div className="form-grid"><SelectField label="Budget range" name="budget" value={data.budget} onChange={change as any} required options={['Under R25,000','R25,000 - R60,000','R60,000 - R150,000','R150,000+','Not sure yet']} /><Field label="Desired launch date" name="launchDate" value={data.launchDate} onChange={change} type="date" required /><SelectField label="Urgency level" name="urgency" value={data.urgency} onChange={change as any} required options={['Flexible','Standard','High','Urgent']} /><Field label="Must-have features" name="mustHave" value={data.mustHave} onChange={change} type="textarea" required /><Field label="Nice-to-have features" name="niceToHave" value={data.niceToHave} onChange={change} type="textarea" /></div></>}
           {step === 3 && <><div className="wizard-title"><span>04</span><div><h2>How can we reach you?</h2><p>We will only use these details to discuss your request.</p></div></div><div className="form-grid"><Field label="Full name" name="fullName" value={data.fullName} onChange={change} required /><Field label="Company name" name="company" value={data.company} onChange={change} /><Field label="Email" name="email" value={data.email} onChange={change} type="email" required /><Field label="Phone number" name="phone" value={data.phone} onChange={change} type="tel" required /><SelectField label="Preferred contact method" name="contactMethod" value={data.contactMethod} onChange={change as any} required options={['Email','Phone','WhatsApp']} /><Field label="Extra notes" name="notes" value={data.notes} onChange={change} type="textarea" /></div></>}
@@ -708,7 +708,7 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
             <button className="btn auth-submit" type="submit" disabled={loading}>
               {loading ? 'Signing in…' : <>Sign in <ArrowRight size={14} /></>}
             </button>
-            <button type="button" className="auth-link-btn" onClick={() => { Sentry.metrics.increment('auth.forgot_password_clicked', 1); setForgotStep('form'); setForgotEmail(email); setError('') }}>
+            <button type="button" className="auth-link-btn" onClick={() => { Sentry.metrics.count('auth.forgot_password_clicked', 1); setForgotStep('form'); setForgotEmail(email); setError('') }}>
               Forgot password?
             </button>
           </form>
