@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis/cloudflare'
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
@@ -42,12 +42,14 @@ export async function onRequest({ request, env }) {
 
   const isAdmin = request.headers.get('x-admin-secret') === env.ADMIN_SECRET
 
-  const verifyClient = () => {
+  const verifyClient = async () => {
     try {
       const auth = request.headers.get('authorization') || ''
       const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
       if (!token) return null
-      return jwt.verify(token, env.JWT_SECRET)
+      const secret = new TextEncoder().encode(env.JWT_SECRET)
+      const { payload } = await jwtVerify(token, secret)
+      return payload
     } catch { return null }
   }
 
@@ -55,7 +57,7 @@ export async function onRequest({ request, env }) {
 
   if (request.method === 'GET') {
     const admin = isAdmin
-    const client = verifyClient()
+    const client = await verifyClient()
     if (!admin && !client) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
 
     try {
@@ -85,7 +87,7 @@ export async function onRequest({ request, env }) {
 
   if (request.method === 'POST') {
     const admin = isAdmin
-    const client = verifyClient()
+    const client = await verifyClient()
     if (!admin && !client) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
 
     let body

@@ -29,7 +29,10 @@
       "Bash(grep -E \"\\\\.js$\")",
       "Bash(node -e \"const s = require\\('@sentry/cloudflare'\\); console.log\\(Object.keys\\(s\\).filter\\(k => k === 'metrics' || k === 'sentryPagesPlugin' || k === 'captureException' || k === 'captureMessage'\\)\\)\")",
       "Bash(node -e \"const s = require\\('./node_modules/@sentry/react/build/cjs/index.js'\\); console.log\\(Object.keys\\(s\\).filter\\(k => k.toLowerCase\\(\\).includes\\('metric'\\) || k === 'captureEvent' || k === 'addBreadcrumb'\\)\\)\")",
-      "Bash(node -e \"const s = require\\('./node_modules/@sentry/react/build/cjs/index.js'\\); console.log\\(Object.keys\\(s.metrics ?? {}\\)\\)\")"
+      "Bash(node -e \"const s = require\\('./node_modules/@sentry/react/build/cjs/index.js'\\); console.log\\(Object.keys\\(s.metrics ?? {}\\)\\)\")",
+      "Bash(cat wrangler.toml)",
+      "Bash(cat wrangler.json)",
+      "Bash(node -e ' *)"
     ]
   }
 }

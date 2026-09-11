@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis/cloudflare'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
@@ -17,7 +17,8 @@ export async function onRequest({ request, env }) {
 
   let payload
   try {
-    payload = jwt.verify(token, env.JWT_SECRET)
+    const secret = new TextEncoder().encode(env.JWT_SECRET)
+    ;({ payload } = await jwtVerify(token, secret))
   } catch {
     return Response.json({ ok: false, error: 'Invalid or expired token' }, { status: 401, headers })
   }

@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis/cloudflare'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { SignJWT } from 'jose'
 import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
@@ -54,11 +54,11 @@ export async function onRequest({ request, env }) {
       return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401, headers })
     }
 
-    const token = jwt.sign(
-      { sub: normalizedEmail, name: client.fullName, company: client.company, folderId: client.clickupFolderId, mustChangePassword: client.mustChangePassword },
-      env.JWT_SECRET,
-      { expiresIn: '7d' }
-    )
+    const secret = new TextEncoder().encode(env.JWT_SECRET)
+    const token = await new SignJWT({ sub: normalizedEmail, name: client.fullName, company: client.company, folderId: client.clickupFolderId, mustChangePassword: client.mustChangePassword })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('7d')
+      .sign(secret)
 
     Sentry.metrics.increment('login.success', 1, { tags: { role: 'client' } })
     log.info('Client login success', { company: client.company })

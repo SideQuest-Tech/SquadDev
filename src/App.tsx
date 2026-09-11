@@ -566,6 +566,14 @@ function ProjectWizard({ initialService, onClose, onSubmitted }: ProjectWizardPr
   )
 }
 
+async function apiFetch(url: string, init: RequestInit): Promise<Record<string, unknown>> {
+  const res = await fetch(url, init)
+  if (!res.headers.get('content-type')?.includes('application/json')) {
+    throw new Error(`HTTP ${res.status} — non-JSON response from ${url}`)
+  }
+  return res.json() as Promise<Record<string, unknown>>
+}
+
 /* ── Unified login — auth-switch style ────────────────────────── */
 type AppView = 'site' | 'login' | 'dashboard' | 'client-dashboard'
 
@@ -586,8 +594,7 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
   const login = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError(''); setLoading(true)
     try {
-      const res  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email: email.trim().toLowerCase(), password }) })
-      const data = await res.json()
+      const data = await apiFetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email: email.trim().toLowerCase(), password }) })
       if (!data.ok) {
         Sentry.logger.warn('Login failed', { email: email.trim().toLowerCase(), reason: data.error })
         setError(data.error || 'Invalid email or password.'); return
@@ -608,8 +615,7 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
     if (newPassword.length < 8) { setError('Password must be at least 8 characters'); return }
     setLoading(true)
     try {
-      const res  = await fetch('/api/change-password', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${pendingToken}`}, body:JSON.stringify({ currentPassword: password, newPassword }) })
-      const data = await res.json()
+      const data = await apiFetch('/api/change-password', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${pendingToken}`}, body:JSON.stringify({ currentPassword: password, newPassword }) })
       if (!data.ok) { setError(data.error || 'Failed to update password'); return }
       clientSessionStore.setToken(pendingToken!); setView('client-dashboard')
     } catch { setError('Could not reach the server. Please try again.') }
@@ -619,7 +625,7 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
   const sendForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError(''); setLoading(true)
     try {
-      await fetch('/api/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }) })
+      await apiFetch('/api/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }) })
       setForgotStep('sent')
     } catch (err) {
       Sentry.logger.error('Forgot password network error', { message: (err as Error).message })
