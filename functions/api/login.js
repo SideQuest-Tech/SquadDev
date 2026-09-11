@@ -32,10 +32,10 @@ export async function onRequest({ request, env }) {
       const match = await bcrypt.compare(password, admin.passwordHash)
       if (!match) {
         log.warn('Admin login failed — wrong password')
-        Sentry.metrics.increment('login.failed', 1, { tags: { role: 'admin', reason: 'wrong_password' } })
+        Sentry.metrics.count('login.failed', 1, { tags: { role: 'admin', reason: 'wrong_password' } })
         return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401, headers })
       }
-      Sentry.metrics.increment('login.success', 1, { tags: { role: 'admin' } })
+      Sentry.metrics.count('login.success', 1, { tags: { role: 'admin' } })
       log.info('Admin login success')
       return Response.json({ ok: true, role: 'admin' }, { status: 200, headers })
     }
@@ -43,14 +43,14 @@ export async function onRequest({ request, env }) {
     const client = parseObj(await redis.get(`client:${normalizedEmail}`))
     if (!client || !client.isActive) {
       log.warn('Client login failed — not found or inactive')
-      Sentry.metrics.increment('login.failed', 1, { tags: { role: 'client', reason: 'not_found' } })
+      Sentry.metrics.count('login.failed', 1, { tags: { role: 'client', reason: 'not_found' } })
       return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401, headers })
     }
 
     const match = await bcrypt.compare(password, client.passwordHash)
     if (!match) {
       log.warn('Client login failed — wrong password')
-      Sentry.metrics.increment('login.failed', 1, { tags: { role: 'client', reason: 'wrong_password' } })
+      Sentry.metrics.count('login.failed', 1, { tags: { role: 'client', reason: 'wrong_password' } })
       return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401, headers })
     }
 
@@ -60,7 +60,7 @@ export async function onRequest({ request, env }) {
       .setExpirationTime('7d')
       .sign(secret)
 
-    Sentry.metrics.increment('login.success', 1, { tags: { role: 'client' } })
+    Sentry.metrics.count('login.success', 1, { tags: { role: 'client' } })
     log.info('Client login success', { company: client.company })
     return Response.json({
       ok: true, role: 'client', token,
@@ -68,7 +68,7 @@ export async function onRequest({ request, env }) {
     }, { status: 200, headers })
   } catch (err) {
     Sentry.captureException(err, { extra: { traceId } })
-    Sentry.metrics.increment('login.error', 1)
+    Sentry.metrics.count('login.error', 1)
     log.error('Login error', { message: err.message })
     return Response.json({ ok: false, error: 'Login failed. Please try again.' }, { status: 500, headers })
   }

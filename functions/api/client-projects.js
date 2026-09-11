@@ -42,7 +42,7 @@ export async function onRequest({ request, env }) {
     return Response.json({ ok: true, projects: result }, { status: 200, headers })
   } catch (err) {
     Sentry.captureException(err, { extra: { traceId } })
-    Sentry.metrics.increment('client_projects.error', 1)
+    Sentry.metrics.count('client_projects.error', 1)
     log.error('Failed to fetch client projects', { message: err.message })
     return Response.json({ ok: false, error: 'Failed to load projects.' }, { status: 500, headers })
   }

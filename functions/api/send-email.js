@@ -111,12 +111,12 @@ export async function onRequest({ request, env }) {
         html: buildConfirmationHtml(r)
       })
     ])
-    Sentry.metrics.increment('project_request.submitted', 1, { tags: { need: r.need ?? 'unknown' } })
+    Sentry.metrics.count('project_request.submitted', 1, { tags: { need: r.need ?? 'unknown' } })
     log.info('Project request emails sent', { reference: r.reference })
     return Response.json({ ok: true }, { status: 200, headers })
   } catch (err) {
     Sentry.captureException(err, { extra: { reference: r.reference, traceId } })
-    Sentry.metrics.increment('send_email.failed', 1, { tags: { type: 'project_request' } })
+    Sentry.metrics.count('send_email.failed', 1, { tags: { type: 'project_request' } })
     log.error('Failed to send project request emails', { message: err.message })
     return Response.json({ ok: false, error: 'Failed to send email. Please try again.' }, { status: 500, headers })
   }

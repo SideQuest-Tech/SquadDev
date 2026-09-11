@@ -39,7 +39,7 @@ export async function onRequest({ request, env }) {
 
     if (!client || !client.isActive) {
       log.warn('Forgot password — account not found or inactive', { email: normalizedEmail })
-      Sentry.metrics.increment('forgot_password.account_not_found', 1, { tags: { email_domain: normalizedEmail.split('@')[1] } })
+      Sentry.metrics.count('forgot_password.account_not_found', 1, { tags: { email_domain: normalizedEmail.split('@')[1] } })
       return genericOk
     }
 
@@ -72,12 +72,12 @@ export async function onRequest({ request, env }) {
       `
     })
 
-    Sentry.metrics.increment('forgot_password.email_sent', 1)
+    Sentry.metrics.count('forgot_password.email_sent', 1)
     log.info('Temporary password email sent', { email: normalizedEmail })
     return genericOk
   } catch (err) {
     Sentry.captureException(err, { extra: { email: normalizedEmail, traceId } })
-    Sentry.metrics.increment('forgot_password.error', 1, { tags: { reason: err.message?.slice(0, 64) ?? 'unknown' } })
+    Sentry.metrics.count('forgot_password.error', 1, { tags: { reason: err.message?.slice(0, 64) ?? 'unknown' } })
     log.error('Forgot password failed', { message: err.message, email: normalizedEmail })
     return Response.json({ ok: false, error: 'Could not process request. Please try again.' }, { status: 500, headers })
   }

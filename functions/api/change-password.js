@@ -44,7 +44,7 @@ export async function onRequest({ request, env }) {
     const match = await bcrypt.compare(currentPassword, record.passwordHash)
     if (!match) {
       log.warn('Password change failed — wrong current password')
-      Sentry.metrics.increment('change_password.failed', 1, { tags: { reason: 'wrong_current' } })
+      Sentry.metrics.count('change_password.failed', 1, { tags: { reason: 'wrong_current' } })
       return Response.json({ ok: false, error: 'Current password is incorrect' }, { status: 401, headers })
     }
 
@@ -55,12 +55,12 @@ export async function onRequest({ request, env }) {
       mustChangePassword: false
     }))
 
-    Sentry.metrics.increment('change_password.success', 1)
+    Sentry.metrics.count('change_password.success', 1)
     log.info('Password changed successfully')
     return Response.json({ ok: true }, { status: 200, headers })
   } catch (err) {
     Sentry.captureException(err, { extra: { traceId } })
-    Sentry.metrics.increment('change_password.error', 1)
+    Sentry.metrics.count('change_password.error', 1)
     log.error('Password change error', { message: err.message })
     return Response.json({ ok: false, error: 'Could not update password. Please try again.' }, { status: 500, headers })
   }

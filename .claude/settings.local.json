@@ -32,7 +32,10 @@
       "Bash(node -e \"const s = require\\('./node_modules/@sentry/react/build/cjs/index.js'\\); console.log\\(Object.keys\\(s.metrics ?? {}\\)\\)\")",
       "Bash(cat wrangler.toml)",
       "Bash(cat wrangler.json)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(cat .github/workflows/deploy-prod.yml)",
+      "Bash(ls .github/workflows/)",
+      "Bash(node -e \"const s = require\\('./node_modules/@sentry/cloudflare/build/cjs/index.js'\\); console.log\\(Object.keys\\(s.metrics ?? {}\\)\\)\")"
     ]
   }
 }
