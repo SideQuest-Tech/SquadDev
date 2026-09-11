@@ -80,7 +80,7 @@ test.describe('Auth / login', () => {
   })
 
   test('forgot password form submits and shows confirmation', async ({ page }) => {
-    await page.route('**/api/forgot-password', route => route.fulfill({ status: 200, body: JSON.stringify({ ok: true }) }))
+    await page.route('**/api/forgot-password', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }))
     await page.goto('/')
     await page.locator('.nav-login').click()
     await page.getByRole('button', { name: /Forgot password/i }).click()
@@ -91,7 +91,7 @@ test.describe('Auth / login', () => {
   })
 
   test('Back to login from confirmation restores login view', async ({ page }) => {
-    await page.route('**/api/forgot-password', route => route.fulfill({ status: 200, body: JSON.stringify({ ok: true }) }))
+    await page.route('**/api/forgot-password', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }))
     await page.goto('/')
     await page.locator('.nav-login').click()
     await page.getByRole('button', { name: /Forgot password/i }).click()
