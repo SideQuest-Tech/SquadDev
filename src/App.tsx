@@ -588,11 +588,17 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
     try {
       const res  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email: email.trim().toLowerCase(), password }) })
       const data = await res.json()
-      if (!data.ok) { setError(data.error || 'Invalid email or password.'); return }
+      if (!data.ok) {
+        Sentry.logger.warn('Login failed', { email: email.trim().toLowerCase(), reason: data.error })
+        setError(data.error || 'Invalid email or password.'); return
+      }
       if (data.role === 'admin') { sessionStore.set(true); setView('dashboard') }
       else if (data.client.mustChangePassword) { setPendingToken(data.token); setMustChange(true) }
       else { clientSessionStore.setToken(data.token); setView('client-dashboard') }
-    } catch { setError('Could not reach the server. Please try again.') }
+    } catch (err) {
+      Sentry.logger.error('Login network error', { message: (err as Error).message })
+      setError('Could not reach the server. Please try again.')
+    }
     finally { setLoading(false) }
   }
 
@@ -615,7 +621,10 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
     try {
       await fetch('/api/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }) })
       setForgotStep('sent')
-    } catch { setError('Could not reach the server. Please try again.') }
+    } catch (err) {
+      Sentry.logger.error('Forgot password network error', { message: (err as Error).message })
+      setError('Could not reach the server. Please try again.')
+    }
     finally { setLoading(false) }
   }
 

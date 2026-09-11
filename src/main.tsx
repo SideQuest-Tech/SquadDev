@@ -8,11 +8,16 @@ import './styles.css'
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
   environment: import.meta.env.MODE,
-  integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+    Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
+  ],
   tracesSampleRate: 1.0,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
   enabled: !!import.meta.env.VITE_SENTRY_DSN,
+  _experiments: { enableLogs: true },
 })
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
