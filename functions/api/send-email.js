@@ -5,6 +5,10 @@ import { createLogger } from '../_shared/logger.js'
 const FROM = 'SideQuest Tech <hello@sidequesttech.co.za>'
 const BUSINESS_EMAIL = 'hello@sidequesttech.co.za'
 
+const esc = s => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
 const serviceLabel = key => ({
   website: 'Website', app: 'Mobile / web app', automation: 'Automation',
   existing: 'Existing system', mvp: 'MVP', unsure: 'Not sure yet'
@@ -25,24 +29,24 @@ function buildBusinessHtml(r) {
 <div style="max-width:640px;margin:0 auto">
   <div style="background:#0f172a;border-radius:8px 8px 0 0;padding:28px 32px">
     <div style="color:#3b82f6;font-size:10px;font-weight:700;letter-spacing:3px;margin-bottom:10px">● NEW PROJECT REQUEST</div>
-    <h1 style="color:white;margin:0 0 6px;font-size:20px;font-weight:600">${r.reference}</h1>
+    <h1 style="color:white;margin:0 0 6px;font-size:20px;font-weight:600">${esc(r.reference)}</h1>
     <div style="color:#94a3b8;font-size:12px">${new Date(r.createdAt).toLocaleString('en-ZA', { dateStyle: 'full', timeStyle: 'short' })}</div>
   </div>
   <div style="background:white;padding:24px 32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0">
     <div style="margin-bottom:24px">
-      <span style="background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;margin-right:8px">${serviceLabel(r.need)}</span>
-      <span style="background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;margin-right:8px">${r.urgency} urgency</span>
-      <span style="background:#faf5ff;color:#7c3aed;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px">${r.budget}</span>
+      <span style="background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;margin-right:8px">${esc(serviceLabel(r.need))}</span>
+      <span style="background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;margin-right:8px">${esc(r.urgency)} urgency</span>
+      <span style="background:#faf5ff;color:#7c3aed;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px">${esc(r.budget)}</span>
     </div>
     <h2 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;text-transform:uppercase;letter-spacing:1px">Client</h2>
     <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;margin-bottom:24px">
-      ${row('Name', r.fullName)}${row('Company', r.company)}${row('Email', `<a href="mailto:${r.email}" style="color:#2563eb">${r.email}</a>`)}${row('Phone', r.phone)}${row('Contact via', r.contactMethod)}
+      ${row('Name', esc(r.fullName))}${row('Company', esc(r.company))}${row('Email', `<a href="mailto:${esc(r.email)}" style="color:#2563eb">${esc(r.email)}</a>`)}${row('Phone', esc(r.phone))}${row('Contact via', esc(r.contactMethod))}
     </table>
     <h2 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;text-transform:uppercase;letter-spacing:1px">Project profile</h2>
     <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;margin-bottom:24px">
       ${details}
     </table>
-    ${r.notes ? `<h2 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;text-transform:uppercase;letter-spacing:1px">Notes</h2><p style="font-size:13px;color:#374151;margin:0 0 24px;background:#f8fafc;padding:12px;border-radius:6px;border:1px solid #e2e8f0">${r.notes}</p>` : ''}
+    ${r.notes ? `<h2 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;text-transform:uppercase;letter-spacing:1px">Notes</h2><p style="font-size:13px;color:#374151;margin:0 0 24px;background:#f8fafc;padding:12px;border-radius:6px;border:1px solid #e2e8f0">${esc(r.notes)}</p>` : ''}
   </div>
   <div style="background:#0f172a;border-radius:0 0 8px 8px;padding:16px 32px;display:flex;justify-content:space-between;align-items:center">
     <span style="color:#64748b;font-size:12px">SideQuest Tech — project intake</span>
@@ -61,7 +65,7 @@ function buildConfirmationHtml(r) {
     <p style="color:#94a3b8;margin:0;font-size:14px">SideQuest Tech will be in touch soon.</p>
   </div>
   <div style="background:white;padding:28px 32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0">
-    <p style="color:#374151;font-size:15px;margin:0 0 24px">Hi ${r.fullName.split(' ')[0]},</p>
+    <p style="color:#374151;font-size:15px;margin:0 0 24px">Hi ${esc(r.fullName.split(' ')[0])},</p>
     <p style="color:#374151;font-size:15px;margin:0 0 24px">Thank you for submitting your project request. We have captured everything below and our team will review it before reaching out to discuss next steps.</p>
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px 24px;margin-bottom:24px">
       <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#64748b;margin-bottom:4px">YOUR REFERENCE</div>

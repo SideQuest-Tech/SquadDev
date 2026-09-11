@@ -568,6 +568,11 @@ function ProjectWizard({ initialService, onClose, onSubmitted }: ProjectWizardPr
 
 async function apiFetch(url: string, init: RequestInit): Promise<Record<string, unknown>> {
   const res = await fetch(url, init)
+  if (res.status === 429) {
+    const retryAfter = res.headers.get('Retry-After')
+    const wait = retryAfter ? ` Please wait ${retryAfter} seconds.` : ''
+    throw new Error(`Too many requests.${wait}`)
+  }
   if (!res.headers.get('content-type')?.includes('application/json')) {
     throw new Error(`HTTP ${res.status} — non-JSON response from ${url}`)
   }
