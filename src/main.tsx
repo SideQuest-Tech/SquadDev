@@ -8,7 +8,10 @@ import './styles.css'
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
   environment: import.meta.env.MODE,
-  tracesSampleRate: 0.1,
+  integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+  tracesSampleRate: 1.0,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
   enabled: !!import.meta.env.VITE_SENTRY_DSN,
 })
 

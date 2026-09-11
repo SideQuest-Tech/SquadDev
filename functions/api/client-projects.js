@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis/cloudflare'
 import jwt from 'jsonwebtoken'
+import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
 const parseArr = raw => { if (!raw) return []; if (Array.isArray(raw)) return raw; try { return JSON.parse(raw) } catch { return [] } }
@@ -39,6 +40,8 @@ export async function onRequest({ request, env }) {
     log.info('Client projects fetched', { count: result.length })
     return Response.json({ ok: true, projects: result }, { status: 200, headers })
   } catch (err) {
+    Sentry.captureException(err, { extra: { traceId } })
+    Sentry.metrics.increment('client_projects.error', 1)
     log.error('Failed to fetch client projects', { message: err.message })
     return Response.json({ ok: false, error: 'Failed to load projects.' }, { status: 500, headers })
   }

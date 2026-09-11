@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis/cloudflare'
+import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
 const parseArr = raw => {
@@ -56,6 +57,8 @@ export async function onRequest({ request, env }) {
       log.info('Projects fetched', { count: result.length, ...(email && { forEmail: '[redacted]' }) })
       return Response.json({ ok: true, projects: result }, { status: 200, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { traceId } })
+      Sentry.metrics.increment('projects.error', 1, { tags: { operation: 'fetch' } })
       log.error('Failed to fetch projects', { message: err.message })
       return Response.json({ ok: false, error: 'Failed to load projects.' }, { status: 500, headers })
     }
@@ -96,12 +99,15 @@ export async function onRequest({ request, env }) {
         }
 
         await redis.set(`project:${listId}`, JSON.stringify({ ...project, ...updates }))
+        Sentry.metrics.increment('projects.status_updated', 1, { tags: { status: newStatus } })
         log.info('Project status updated', { listId, newStatus })
         return Response.json({ ok: true }, { status: 200, headers })
       }
 
       return Response.json({ ok: false, error: `Unknown action: ${action}` }, { status: 400, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { action, listId, traceId } })
+      Sentry.metrics.increment('projects.error', 1, { tags: { operation: action ?? 'unknown' } })
       log.error('Project action failed', { action, listId, message: err.message })
       return Response.json({ ok: false, error: 'Action failed. Please try again.' }, { status: 500, headers })
     }

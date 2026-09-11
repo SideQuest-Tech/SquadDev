@@ -416,6 +416,9 @@ footer { background: var(--bg-2); border-top: 1px solid var(--line); padding: 28
 .auth-start-panel { display: flex; flex-direction: column; gap: 18px; padding-top: 4px; }
 .auth-start-text { color: var(--ink-2); font-size: 14px; line-height: 1.65; margin: 0; }
 .auth-start-note { font-size: 11px; color: var(--ink-3); text-align: center; margin: 0; letter-spacing: .02em; }
+.auth-forgot-hint { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin: 0; }
+.auth-link-btn { background: none; border: none; padding: 0; color: var(--ink-3); font-size: 12px; text-align: center; cursor: pointer; letter-spacing: .02em; transition: color .15s; }
+.auth-link-btn:hover { color: var(--ink); }
 
 /* ─── Admin login override ───────────────────────────────────── */
 .admin-page {

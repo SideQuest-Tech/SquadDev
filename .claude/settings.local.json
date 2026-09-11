@@ -24,7 +24,10 @@
       "Bash(python -m json.tool)",
       "Bash(curl *)",
       "Bash(kill %1)",
-      "Bash(wait)"
+      "Bash(wait)",
+      "Bash(xargs ls *)",
+      "Bash(grep -E \"\\\\.js$\")",
+      "Bash(node -e \"const s = require\\('@sentry/cloudflare'\\); console.log\\(Object.keys\\(s\\).filter\\(k => k === 'metrics' || k === 'sentryPagesPlugin' || k === 'captureException' || k === 'captureMessage'\\)\\)\")"
     ]
   }
 }

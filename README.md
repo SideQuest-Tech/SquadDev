@@ -73,6 +73,21 @@ Open [http://localhost:3000](http://localhost:3000).
 
 > Plain `npm run dev` starts Vite only and will not serve any `/api` routes.
 
+### Build
+
+```bash
+npm run build      # Production build → dist/
+npm run preview    # Preview the production build locally
+```
+
+### Tests
+
+```bash
+npm run test:unit  # Run unit tests once (Vitest)
+npm test           # Run unit tests in watch mode
+npm run test:e2e   # Run Playwright end-to-end tests
+```
+
 ---
 
 ## One-time setup

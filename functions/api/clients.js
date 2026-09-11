@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis/cloudflare'
+import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
 const parseArr = raw => {
@@ -46,6 +47,8 @@ export async function onRequest({ request, env }) {
       log.info('Clients fetched', { count: result.length })
       return Response.json({ ok: true, clients: result }, { status: 200, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { traceId } })
+      Sentry.metrics.increment('clients.error', 1, { tags: { operation: 'fetch' } })
       log.error('Failed to fetch clients', { message: err.message })
       return Response.json({ ok: false, error: 'Failed to load clients.' }, { status: 500, headers })
     }
@@ -74,6 +77,7 @@ export async function onRequest({ request, env }) {
             body: JSON.stringify({ archived: true })
           }, env)
         }
+        Sentry.metrics.increment('clients.action', 1, { tags: { action: 'deactivate' } })
         log.info('Client deactivated', { company: record.company })
         return Response.json({ ok: true }, { status: 200, headers })
       }
@@ -86,6 +90,7 @@ export async function onRequest({ request, env }) {
             body: JSON.stringify({ archived: false })
           }, env)
         }
+        Sentry.metrics.increment('clients.action', 1, { tags: { action: 'reactivate' } })
         log.info('Client reactivated', { company: record.company })
         return Response.json({ ok: true }, { status: 200, headers })
       }
@@ -94,6 +99,7 @@ export async function onRequest({ request, env }) {
         await redis.del(clientKey)
         const emails = parseArr(await redis.get('approved_clients'))
         await redis.set('approved_clients', JSON.stringify(emails.filter(e => e !== normalizedEmail)))
+        Sentry.metrics.increment('clients.action', 1, { tags: { action: 'remove' } })
         log.info('Client removed', { company: record.company })
         return Response.json({ ok: true }, { status: 200, headers })
       }
@@ -105,6 +111,7 @@ export async function onRequest({ request, env }) {
           body: JSON.stringify({ name: projectName })
         }, env)
         if (!listRes.id) {
+          Sentry.metrics.increment('clients.clickup_failed', 1, { tags: { operation: 'create_list' } })
           log.error('ClickUp list creation failed', { response: JSON.stringify(listRes) })
           return Response.json({ ok: false, error: 'Failed to create project list. Check ClickUp configuration.' }, { status: 500, headers })
         }
@@ -125,12 +132,15 @@ export async function onRequest({ request, env }) {
         clientProjects.push(listRes.id)
         await redis.set(`client_projects:${normalizedEmail}`, JSON.stringify(clientProjects))
 
+        Sentry.metrics.increment('clients.action', 1, { tags: { action: 'add_project' } })
         log.info('Project added to client', { listId: listRes.id, company: record.company })
         return Response.json({ ok: true, listId: listRes.id }, { status: 200, headers })
       }
 
       return Response.json({ ok: false, error: `Unknown action: ${action}` }, { status: 400, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { action, traceId } })
+      Sentry.metrics.increment('clients.error', 1, { tags: { operation: action ?? 'unknown' } })
       log.error('Client action failed', { action, message: err.message })
       return Response.json({ ok: false, error: 'Action failed. Please try again.' }, { status: 500, headers })
     }

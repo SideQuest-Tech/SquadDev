@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
 const FROM = 'SideQuest Tech <hello@sidequesttech.co.za>'
@@ -110,9 +111,12 @@ export async function onRequest({ request, env }) {
         html: buildConfirmationHtml(r)
       })
     ])
+    Sentry.metrics.increment('project_request.submitted', 1, { tags: { need: r.need ?? 'unknown' } })
     log.info('Project request emails sent', { reference: r.reference })
     return Response.json({ ok: true }, { status: 200, headers })
   } catch (err) {
+    Sentry.captureException(err, { extra: { reference: r.reference, traceId } })
+    Sentry.metrics.increment('send_email.failed', 1, { tags: { type: 'project_request' } })
     log.error('Failed to send project request emails', { message: err.message })
     return Response.json({ ok: false, error: 'Failed to send email. Please try again.' }, { status: 500, headers })
   }

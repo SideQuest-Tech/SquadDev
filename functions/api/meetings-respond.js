@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis/cloudflare'
 import { Resend } from 'resend'
 import jwt from 'jsonwebtoken'
+import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
 const parse = raw => (typeof raw === 'string' ? JSON.parse(raw) : raw)
@@ -140,7 +141,11 @@ export async function onRequest({ request, env }) {
 
     if (action === 'decline') {
       await redis.set(`meeting:${meetingId}`, JSON.stringify({ ...meeting, status: 'declined' }))
-      try { await sendDeclineEmail(meeting, resend) } catch (e) { log.warn('Decline email failed', { message: e.message }) }
+      try { await sendDeclineEmail(meeting, resend) } catch (e) {
+        Sentry.metrics.increment('meetings.email_failed', 1, { tags: { type: 'decline' } })
+        log.warn('Decline email failed', { message: e.message })
+      }
+      Sentry.metrics.increment('meetings.declined', 1)
       log.info('Meeting declined', { meetingId })
       return Response.json({ ok: true }, { status: 200, headers })
     }
@@ -152,6 +157,8 @@ export async function onRequest({ request, env }) {
       meetLink = result.meetLink
       calendarEventId = result.calendarEventId
     } catch (err) {
+      Sentry.captureException(err, { extra: { meetingId, traceId } })
+      Sentry.metrics.increment('meetings.google_meet_failed', 1)
       log.error('Google Calendar event creation failed', { message: err.message })
       return Response.json({ ok: false, error: 'Failed to create Google Meet. Check Google credentials.' }, { status: 500, headers })
     }
@@ -159,11 +166,17 @@ export async function onRequest({ request, env }) {
     const updated = { ...meeting, status: 'accepted', confirmedTime, meetLink, calendarEventId }
     await redis.set(`meeting:${meetingId}`, JSON.stringify(updated))
 
-    try { await sendConfirmationEmail(updated, resend) } catch (e) { log.warn('Confirmation email failed', { message: e.message }) }
+    try { await sendConfirmationEmail(updated, resend) } catch (e) {
+      Sentry.metrics.increment('meetings.email_failed', 1, { tags: { type: 'confirmation' } })
+      log.warn('Confirmation email failed', { message: e.message })
+    }
 
+    Sentry.metrics.increment('meetings.accepted', 1)
     log.info('Meeting accepted', { meetingId })
     return Response.json({ ok: true, meetLink }, { status: 200, headers })
   } catch (err) {
+    Sentry.captureException(err, { extra: { meetingId, traceId } })
+    Sentry.metrics.increment('meetings.error', 1, { tags: { operation: 'respond' } })
     log.error('Failed to process meeting response', { message: err.message })
     return Response.json({ ok: false, error: 'Failed to process response.' }, { status: 500, headers })
   }

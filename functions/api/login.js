@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis/cloudflare'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
 const parseObj = raw => {
@@ -31,8 +32,10 @@ export async function onRequest({ request, env }) {
       const match = await bcrypt.compare(password, admin.passwordHash)
       if (!match) {
         log.warn('Admin login failed — wrong password')
+        Sentry.metrics.increment('login.failed', 1, { tags: { role: 'admin', reason: 'wrong_password' } })
         return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401, headers })
       }
+      Sentry.metrics.increment('login.success', 1, { tags: { role: 'admin' } })
       log.info('Admin login success')
       return Response.json({ ok: true, role: 'admin' }, { status: 200, headers })
     }
@@ -40,12 +43,14 @@ export async function onRequest({ request, env }) {
     const client = parseObj(await redis.get(`client:${normalizedEmail}`))
     if (!client || !client.isActive) {
       log.warn('Client login failed — not found or inactive')
+      Sentry.metrics.increment('login.failed', 1, { tags: { role: 'client', reason: 'not_found' } })
       return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401, headers })
     }
 
     const match = await bcrypt.compare(password, client.passwordHash)
     if (!match) {
       log.warn('Client login failed — wrong password')
+      Sentry.metrics.increment('login.failed', 1, { tags: { role: 'client', reason: 'wrong_password' } })
       return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401, headers })
     }
 
@@ -55,12 +60,15 @@ export async function onRequest({ request, env }) {
       { expiresIn: '7d' }
     )
 
+    Sentry.metrics.increment('login.success', 1, { tags: { role: 'client' } })
     log.info('Client login success', { company: client.company })
     return Response.json({
       ok: true, role: 'client', token,
       client: { name: client.fullName, company: client.company, folderId: client.clickupFolderId, mustChangePassword: client.mustChangePassword }
     }, { status: 200, headers })
   } catch (err) {
+    Sentry.captureException(err, { extra: { traceId } })
+    Sentry.metrics.increment('login.error', 1)
     log.error('Login error', { message: err.message })
     return Response.json({ ok: false, error: 'Login failed. Please try again.' }, { status: 500, headers })
   }

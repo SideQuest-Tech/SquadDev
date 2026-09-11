@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/cloudflare'
+
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 }
 
 function emit(level, service, traceId, message, context, minLevel) {
@@ -12,6 +14,10 @@ function emit(level, service, traceId, message, context, minLevel) {
   }
   const fn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log
   fn(JSON.stringify(entry))
+
+  if (level === 'warn' || level === 'error') {
+    Sentry.captureMessage(message, { level, extra: { ...context, service, traceId } })
+  }
 }
 
 export function createLogger(service, traceId, env = {}) {

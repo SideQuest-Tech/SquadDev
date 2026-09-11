@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis/cloudflare'
+import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
 const KEY = 'sidequest_requests'
@@ -38,6 +39,8 @@ export async function onRequest({ request, env }) {
       log.info('Requests fetched', { count: requests.length })
       return Response.json({ ok: true, requests }, { status: 200, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { traceId } })
+      Sentry.metrics.increment('requests.error', 1, { tags: { operation: 'fetch' } })
       log.error('Failed to fetch requests', { message: err.message })
       return Response.json({ ok: false, error: 'Something went wrong. Please try again.' }, { status: 500, headers })
     }
@@ -56,9 +59,12 @@ export async function onRequest({ request, env }) {
         return Response.json({ ok: true, message: 'Already exists' }, { status: 200, headers })
       }
       await saveAll(redis, [reqBody, ...requests])
+      Sentry.metrics.increment('requests.created', 1, { tags: { need: reqBody.need ?? 'unknown' } })
       log.info('Project request created', { id: reqBody.id, need: reqBody.need })
       return Response.json({ ok: true }, { status: 201, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { traceId } })
+      Sentry.metrics.increment('requests.error', 1, { tags: { operation: 'create' } })
       log.error('Failed to create request', { message: err.message })
       return Response.json({ ok: false, error: 'Something went wrong. Please try again.' }, { status: 500, headers })
     }
@@ -76,6 +82,8 @@ export async function onRequest({ request, env }) {
       log.info('Requests bulk updated', { count: requests.length })
       return Response.json({ ok: true }, { status: 200, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { traceId } })
+      Sentry.metrics.increment('requests.error', 1, { tags: { operation: 'bulk_update' } })
       log.error('Failed to bulk update requests', { message: err.message })
       return Response.json({ ok: false, error: 'Something went wrong. Please try again.' }, { status: 500, headers })
     }
@@ -94,6 +102,8 @@ export async function onRequest({ request, env }) {
       log.info('Request deleted', { id })
       return Response.json({ ok: true }, { status: 200, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { traceId } })
+      Sentry.metrics.increment('requests.error', 1, { tags: { operation: 'delete' } })
       log.error('Failed to delete request', { message: err.message })
       return Response.json({ ok: false, error: 'Something went wrong. Please try again.' }, { status: 500, headers })
     }

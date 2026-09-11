@@ -577,6 +577,8 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
   const [newPassword, setNewPassword] = useState(''), [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState(''), [loading, setLoading] = useState(false)
   const [mustChange, setMustChange] = useState(false), [pendingToken, setPendingToken] = useState<string | null>(null)
+  const [forgotStep, setForgotStep] = useState<'idle' | 'form' | 'sent'>('idle')
+  const [forgotEmail, setForgotEmail] = useState('')
 
   const login = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError(''); setLoading(true)
@@ -605,9 +607,18 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
     finally { setLoading(false) }
   }
 
+  const sendForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); setError(''); setLoading(true)
+    try {
+      await fetch('/api/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }) })
+      setForgotStep('sent')
+    } catch { setError('Could not reach the server. Please try again.') }
+    finally { setLoading(false) }
+  }
+
   return (
     <div className="auth-screen">
-      <button className="auth-back-btn" onClick={() => setView('site')}>
+      <button className="auth-back-btn" onClick={() => { setView('site'); setForgotStep('idle') }}>
         <ChevronLeft size={13} /> Back to site
       </button>
 
@@ -619,7 +630,7 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
           <span className="auth-brand-name">SideQuest Tech</span>
         </div>
 
-        {!mustChange && (
+        {!mustChange && forgotStep === 'idle' && (
           <div className="auth-tabs">
             <div
               className="auth-tab-pill"
@@ -654,7 +665,33 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
           </form>
         )}
 
-        {!mustChange && tab === 'login' && (
+        {forgotStep === 'form' && (
+          <form className="auth-form" onSubmit={sendForgotPassword}>
+            <p className="auth-forgot-hint">Enter your email and we'll send you a temporary password.</p>
+            <div className="auth-field">
+              <label>Email address</label>
+              <input type="email" value={forgotEmail} onChange={e => { setForgotEmail(e.target.value); setError('') }} placeholder="you@company.com" required autoFocus />
+            </div>
+            {error && <div className="auth-error">{error}</div>}
+            <button className="btn auth-submit" type="submit" disabled={loading}>
+              {loading ? 'Sending…' : <>Send temporary password <ArrowRight size={14} /></>}
+            </button>
+            <button type="button" className="auth-link-btn" onClick={() => { setForgotStep('idle'); setError('') }}>
+              Back to login
+            </button>
+          </form>
+        )}
+
+        {forgotStep === 'sent' && (
+          <div className="auth-form">
+            <p className="auth-forgot-hint">If that email is on file, a temporary password is on its way. Check your inbox.</p>
+            <button type="button" className="btn auth-submit" onClick={() => { setForgotStep('idle'); setForgotEmail('') }}>
+              Back to login
+            </button>
+          </div>
+        )}
+
+        {!mustChange && forgotStep === 'idle' && tab === 'login' && (
           <form className="auth-form" onSubmit={login}>
             <div className="auth-field">
               <label>Email address</label>
@@ -668,10 +705,13 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
             <button className="btn auth-submit" type="submit" disabled={loading}>
               {loading ? 'Signing in…' : <>Sign in <ArrowRight size={14} /></>}
             </button>
+            <button type="button" className="auth-link-btn" onClick={() => { setForgotStep('form'); setForgotEmail(email); setError('') }}>
+              Forgot password?
+            </button>
           </form>
         )}
 
-        {!mustChange && tab === 'start' && (
+        {!mustChange && forgotStep === 'idle' && tab === 'start' && (
           <div className="auth-start-panel">
             <p className="auth-start-text">
               Tell us what you need. We will respond within 24 hours with a clear plan and timeline.

@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis/cloudflare'
 import jwt from 'jsonwebtoken'
+import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
 
 const CORS_HEADERS = {
@@ -75,6 +76,8 @@ export async function onRequest({ request, env }) {
       log.info('Meetings fetched', { count: meetings.length, role: admin ? 'admin' : 'client' })
       return Response.json({ ok: true, meetings }, { status: 200, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { traceId } })
+      Sentry.metrics.increment('meetings.error', 1, { tags: { operation: 'fetch' } })
       log.error('Failed to fetch meetings', { message: err.message })
       return Response.json({ ok: false, error: 'Failed to load meetings.' }, { status: 500, headers })
     }
@@ -123,9 +126,12 @@ export async function onRequest({ request, env }) {
         await addToIndexes(redis, id, client.sub)
       }
 
+      Sentry.metrics.increment('meetings.created', 1, { tags: { proposed_by: admin ? 'admin' : 'client' } })
       log.info('Meeting created', { id, proposedBy: admin ? 'admin' : 'client' })
       return Response.json({ ok: true, id }, { status: 201, headers })
     } catch (err) {
+      Sentry.captureException(err, { extra: { traceId } })
+      Sentry.metrics.increment('meetings.error', 1, { tags: { operation: 'create' } })
       log.error('Failed to create meeting', { message: err.message })
       return Response.json({ ok: false, error: 'Failed to create meeting.' }, { status: 500, headers })
     }
