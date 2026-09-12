@@ -35,9 +35,14 @@ export async function onRequest({ request, env }) {
         Sentry.metrics.count('login.failed', 1, { tags: { role: 'admin', reason: 'wrong_password' } })
         return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401, headers })
       }
+      const adminSecret = new TextEncoder().encode(env.JWT_SECRET)
+      const adminToken = await new SignJWT({ sub: normalizedEmail, role: 'admin' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setExpirationTime('8h')
+        .sign(adminSecret)
       Sentry.metrics.count('login.success', 1, { tags: { role: 'admin' } })
       log.info('Admin login success')
-      return Response.json({ ok: true, role: 'admin' }, { status: 200, headers })
+      return Response.json({ ok: true, role: 'admin', token: adminToken }, { status: 200, headers })
     }
 
     const client = parseObj(await redis.get(`client:${normalizedEmail}`))

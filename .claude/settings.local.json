@@ -35,7 +35,9 @@
       "Bash(node -e ' *)",
       "Bash(cat .github/workflows/deploy-prod.yml)",
       "Bash(ls .github/workflows/)",
-      "Bash(node -e \"const s = require\\('./node_modules/@sentry/cloudflare/build/cjs/index.js'\\); console.log\\(Object.keys\\(s.metrics ?? {}\\)\\)\")"
+      "Bash(node -e \"const s = require\\('./node_modules/@sentry/cloudflare/build/cjs/index.js'\\); console.log\\(Object.keys\\(s.metrics ?? {}\\)\\)\")",
+      "Bash(cat src/storage.ts)",
+      "Bash(cat src/storage.js)"
     ]
   }
 }

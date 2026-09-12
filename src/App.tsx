@@ -604,7 +604,7 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
         Sentry.logger.warn('Login failed', { email: email.trim().toLowerCase(), reason: data.error })
         setError(data.error || 'Invalid email or password.'); return
       }
-      if (data.role === 'admin') { sessionStore.set(true); setView('dashboard') }
+      if (data.role === 'admin') { sessionStore.setToken(data.token as string); setView('dashboard') }
       else if (data.client.mustChangePassword) { setPendingToken(data.token); setMustChange(true) }
       else { clientSessionStore.setToken(data.token); setView('client-dashboard') }
     } catch (err) {
@@ -753,7 +753,7 @@ function UnifiedLogin({ setView, onStart }: UnifiedLoginProps): React.ReactEleme
 /* ── App root ─────────────────────────────────────────────────── */
 export default function App(): React.ReactElement {
   const [view, setView] = useState<AppView>(() => {
-    if (sessionStore.get()) return 'dashboard'
+    if (sessionStore.isLoggedIn()) return 'dashboard'
     if (clientSessionStore.getPayload()) return 'client-dashboard'
     return 'site'
   })
@@ -761,7 +761,7 @@ export default function App(): React.ReactElement {
   const [service, setService] = useState('')
 
   const openWizard = (choice = '') => { setService(choice); setWizard(true) }
-  const logout     = () => { sessionStore.set(false); setView('site') }
+  const logout     = () => { sessionStore.clear(); setView('site') }
 
   const content = view === 'login'
     ? <UnifiedLogin setView={setView} onStart={openWizard} />

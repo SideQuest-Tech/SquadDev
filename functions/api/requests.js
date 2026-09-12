@@ -1,13 +1,14 @@
 import { Redis } from '@upstash/redis/cloudflare'
 import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
+import { verifyAdminToken } from '../_shared/adminAuth.js'
 
 const KEY = 'sidequest_requests'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization,x-admin-secret,x-trace-id'
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization,x-trace-id'
 }
 
 const getAll = async (redis) => {
@@ -28,12 +29,12 @@ export async function onRequest({ request, env }) {
   const traceId = request.headers.get('x-trace-id') ?? crypto.randomUUID()
   const log = createLogger('fn-requests', traceId, env)
   const headers = { ...CORS_HEADERS, 'X-Trace-Id': traceId }
-  const isAdmin = request.headers.get('x-admin-secret') === env.ADMIN_SECRET
+  const isAdmin = () => verifyAdminToken(request, env)
 
   const redis = new Redis({ url: env.UPSTASH_REDIS_REST_URL, token: env.UPSTASH_REDIS_REST_TOKEN })
 
   if (request.method === 'GET') {
-    if (!isAdmin) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
+    if (!await isAdmin()) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
     try {
       const requests = await getAll(redis)
       log.info('Requests fetched', { count: requests.length })
@@ -71,7 +72,7 @@ export async function onRequest({ request, env }) {
   }
 
   if (request.method === 'PUT') {
-    if (!isAdmin) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
+    if (!await isAdmin()) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
     let body
     try { body = await request.json() } catch { return Response.json({ ok: false, error: 'Invalid JSON' }, { status: 400, headers }) }
 
@@ -90,7 +91,7 @@ export async function onRequest({ request, env }) {
   }
 
   if (request.method === 'DELETE') {
-    if (!isAdmin) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
+    if (!await isAdmin()) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
     let body
     try { body = await request.json() } catch { return Response.json({ ok: false, error: 'Invalid JSON' }, { status: 400, headers }) }
 

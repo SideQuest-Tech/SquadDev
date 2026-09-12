@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { jwtVerify } from 'jose'
 import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
+import { verifyAdminToken } from '../_shared/adminAuth.js'
 
 const parse = raw => (typeof raw === 'string' ? JSON.parse(raw) : raw)
 
@@ -98,7 +99,6 @@ export async function onRequest({ request, env }) {
 
   if (request.method !== 'POST') return Response.json({ ok: false, error: 'Method not allowed' }, { status: 405, headers })
 
-  const isAdmin = request.headers.get('x-admin-secret') === env.ADMIN_SECRET
   const verifyClient = async () => {
     try {
       const auth = request.headers.get('authorization') || ''
@@ -110,7 +110,7 @@ export async function onRequest({ request, env }) {
     } catch { return null }
   }
 
-  const admin = isAdmin
+  const admin = await verifyAdminToken(request, env)
   const client = await verifyClient()
   if (!admin && !client) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
 

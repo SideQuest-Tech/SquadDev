@@ -10,6 +10,7 @@ import type { LucideIcon } from 'lucide-react'
 import { needOptions, serviceLabel as getServiceLabel } from '../data'
 import brandImage from '../favIcon.jpg'
 import { logger } from '../lib/logger'
+import { sessionStore } from '../storage'
 
 const statusOptions = ['New', 'Reviewing', 'Contacted', 'In Progress', 'Completed', 'Approved', 'Archived']
 const urgencyOptions = ['Low', 'Medium', 'High', 'Urgent']
@@ -354,7 +355,7 @@ function ApprovalModal({ request, onClose, onApproved, showToast }: ApprovalModa
     try {
       const res = await fetch('/api/admin-approve', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': import.meta.env.VITE_ADMIN_SECRET || '' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStore.getToken() ?? ''}` },
         body: JSON.stringify({ requestId: request.id, fullName: request.fullName, email: request.email, company: request.company || request.fullName, projectName })
       })
       const data = await res.json()
@@ -429,8 +430,8 @@ interface Client {
   [key: string]: any
 }
 
-interface ClientsViewProps { adminSecret: string; showToast: (msg: string) => void }
-function ClientsView({ adminSecret, showToast }: ClientsViewProps): React.ReactElement {
+interface ClientsViewProps { showToast: (msg: string) => void }
+function ClientsView({ showToast }: ClientsViewProps): React.ReactElement {
   const [clients, setClients] = useState<Client[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [addProjectFor, setAddProjectFor] = useState<Client | null>(null)
@@ -439,7 +440,7 @@ function ClientsView({ adminSecret, showToast }: ClientsViewProps): React.ReactE
 
   const load = () => {
     setLoading(true)
-    fetch('/api/clients', { headers: { 'x-admin-secret': adminSecret } })
+    fetch('/api/clients', { headers: { Authorization: `Bearer ${sessionStore.getToken() ?? ''}` } })
       .then(r => r.json())
       .then(d => setClients(d.clients || []))
       .catch(() => setClients([]))
@@ -453,7 +454,7 @@ function ClientsView({ adminSecret, showToast }: ClientsViewProps): React.ReactE
     try {
       const res = await fetch('/api/clients', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStore.getToken() ?? ''}` },
         body: JSON.stringify({ action, email, ...extra })
       })
       const data = await res.json()
@@ -516,8 +517,8 @@ interface Project {
   [key: string]: any
 }
 
-interface ProjectsViewProps { adminSecret: string; showToast: (msg: string) => void }
-function ProjectsView({ adminSecret, showToast }: ProjectsViewProps): React.ReactElement {
+interface ProjectsViewProps { showToast: (msg: string) => void }
+function ProjectsView({ showToast }: ProjectsViewProps): React.ReactElement {
   const [projects, setProjects] = useState<Project[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [pauseTarget, setPauseTarget] = useState<Project | null>(null)
@@ -526,7 +527,7 @@ function ProjectsView({ adminSecret, showToast }: ProjectsViewProps): React.Reac
 
   const load = () => {
     setLoading(true)
-    fetch('/api/projects', { headers: { 'x-admin-secret': adminSecret } })
+    fetch('/api/projects', { headers: { Authorization: `Bearer ${sessionStore.getToken() ?? ''}` } })
       .then(r => r.json())
       .then(d => setProjects(d.projects || []))
       .catch(() => setProjects([]))
@@ -540,7 +541,7 @@ function ProjectsView({ adminSecret, showToast }: ProjectsViewProps): React.Reac
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStore.getToken() ?? ''}` },
         body: JSON.stringify({ action: 'update-status', listId, newStatus, pauseReason: reason })
       })
       const data = await res.json()
@@ -624,8 +625,8 @@ interface AdminMeeting {
   [key: string]: any
 }
 
-interface MeetingsViewProps { adminSecret: string; showToast: (msg: string) => void }
-function MeetingsView({ adminSecret, showToast }: MeetingsViewProps): React.ReactElement {
+interface MeetingsViewProps { showToast: (msg: string) => void }
+function MeetingsView({ showToast }: MeetingsViewProps): React.ReactElement {
   const [meetings, setMeetings] = useState<AdminMeeting[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [respondTarget, setRespondTarget] = useState<AdminMeeting | null>(null)
@@ -640,14 +641,14 @@ function MeetingsView({ adminSecret, showToast }: MeetingsViewProps): React.Reac
 
   const load = () => {
     setLoading(true)
-    fetch('/api/meetings', { headers: { 'x-admin-secret': adminSecret } })
+    fetch('/api/meetings', { headers: { Authorization: `Bearer ${sessionStore.getToken() ?? ''}` } })
       .then(r => r.json()).then(d => { if (d.ok) setMeetings(d.meetings) })
       .catch((err: Error) => logger.error('Failed to load meetings', { message: err.message })).finally(() => setLoading(false))
   }
 
   useEffect(() => {
     load()
-    fetch('/api/clients', { headers: { 'x-admin-secret': adminSecret } })
+    fetch('/api/clients', { headers: { Authorization: `Bearer ${sessionStore.getToken() ?? ''}` } })
       .then(r => r.json()).then(d => { if (d.ok) setClients(d.clients || []) })
       .catch((err: Error) => logger.error('Failed to load clients for meetings', { message: err.message }))
   }, [])
@@ -658,7 +659,7 @@ function MeetingsView({ adminSecret, showToast }: MeetingsViewProps): React.Reac
     try {
       const res = await fetch('/api/meetings-respond', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStore.getToken() ?? ''}` },
         body: JSON.stringify({ meetingId: meeting.id, action, confirmedTime: action === 'accept' ? confirmedTime : undefined })
       })
       const data = await res.json()
@@ -676,7 +677,7 @@ function MeetingsView({ adminSecret, showToast }: MeetingsViewProps): React.Reac
     try {
       const res = await fetch('/api/meetings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStore.getToken() ?? ''}` },
         body: JSON.stringify({ title: newTitle.trim(), message: newMsg.trim(), duration: newDuration, proposedTimes: slots, clientEmail: newMtg.clientEmail, clientName: newMtg.clientName })
       })
       const data = await res.json()
@@ -880,10 +881,10 @@ export default function AdminDashboard({ onLogout, onClose }: AdminDashboardProp
   const [approvalTarget, setApprovalTarget] = useState<ProjectRequest | null>(null)
   const [filters, setFilters] = useState<Filters>({ search: '', service: 'All', status: 'All', urgency: 'All', sort: 'newest' })
   const selected = requests.find(request => request.id === selectedId) || null
-  const adminSecret = import.meta.env.VITE_ADMIN_SECRET || ''
+  const adminHeaders = () => ({ Authorization: `Bearer ${sessionStore.getToken() ?? ''}` })
 
   useEffect(() => {
-    const headers = { 'x-admin-secret': adminSecret }
+    const headers = adminHeaders()
     fetch('/api/requests', { headers })
       .then(r => r.json())
       .then(async data => {
@@ -917,7 +918,7 @@ export default function AdminDashboard({ onLogout, onClose }: AdminDashboardProp
     setRequests(next)
     fetch('/api/requests', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
       body: JSON.stringify({ requests: next })
     }).catch((err: Error) => logger.error('Failed to persist requests', { message: err.message }))
   }
@@ -931,7 +932,7 @@ export default function AdminDashboard({ onLogout, onClose }: AdminDashboardProp
     setSelectedId(null)
     fetch('/api/requests', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
       body: JSON.stringify({ id })
     }).catch((err: Error) => logger.error('Failed to delete request', { message: err.message }))
   }
@@ -993,9 +994,9 @@ export default function AdminDashboard({ onLogout, onClose }: AdminDashboardProp
       {!loadingRequests && activeView === 'requests' && <RequestsView requests={requests} filtered={filtered} filters={filters} setFilter={setFilter} onReset={resetFilters} onWebsite={onClose} onDemo={addDemo} onView={request => setSelectedId(request.id)} onStatus={updateStatus} onDelete={remove} />}
       {!loadingRequests && activeView === 'pipeline' && <PipelineView requests={requests} onView={request => setSelectedId(request.id)} onStatus={updateStatus} />}
       {!loadingRequests && activeView === 'analytics' && <AnalyticsView requests={requests} />}
-      {activeView === 'clients' && <ClientsView adminSecret={adminSecret} showToast={showToast} />}
-      {activeView === 'projects' && <ProjectsView adminSecret={adminSecret} showToast={showToast} />}
-      {activeView === 'meetings' && <MeetingsView adminSecret={adminSecret} showToast={showToast} />}
+      {activeView === 'clients' && <ClientsView showToast={showToast} />}
+      {activeView === 'projects' && <ProjectsView showToast={showToast} />}
+      {activeView === 'meetings' && <MeetingsView showToast={showToast} />}
       {activeView === 'settings' && <SettingsView />}
     </main>
     {selected && <RequestDrawer request={selected} onClose={() => setSelectedId(null)} onStatus={updateStatus} onNotes={(id, adminNotes) => updateRequest(id, { adminNotes })} onDelete={remove} onCopy={copy} onApprove={req => { setApprovalTarget(req); setSelectedId(null) }} />}

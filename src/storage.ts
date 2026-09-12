@@ -1,10 +1,25 @@
-const SESSION_KEY = 'sidequest_tech_admin_session'
+const ADMIN_SESSION_KEY = 'sidequest_tech_admin_session'
 const LEGACY_SESSION_KEY = 'squaddevs_admin_session'
 
 export const sessionStore = {
-  get: (): boolean => localStorage.getItem(SESSION_KEY) === 'true' || localStorage.getItem(LEGACY_SESSION_KEY) === 'true',
-  set: (value: boolean): void => {
-    value ? localStorage.setItem(SESSION_KEY, 'true') : localStorage.removeItem(SESSION_KEY)
+  isLoggedIn: (): boolean => {
+    if (localStorage.getItem(LEGACY_SESSION_KEY) === 'true') return true
+    const token = localStorage.getItem(ADMIN_SESSION_KEY)
+    if (!token) return false
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1])) as { role?: string; exp?: number }
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem(ADMIN_SESSION_KEY)
+        return false
+      }
+      return payload.role === 'admin'
+    } catch { return false }
+  },
+  getToken: (): string | null => localStorage.getItem(ADMIN_SESSION_KEY),
+  setToken: (jwt: string): void => localStorage.setItem(ADMIN_SESSION_KEY, jwt),
+  clear: (): void => {
+    localStorage.removeItem(ADMIN_SESSION_KEY)
+    localStorage.removeItem(LEGACY_SESSION_KEY)
   }
 }
 

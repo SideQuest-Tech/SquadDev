@@ -2,11 +2,12 @@ import { Redis } from '@upstash/redis/cloudflare'
 import { jwtVerify } from 'jose'
 import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
+import { verifyAdminToken } from '../_shared/adminAuth.js'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization,x-admin-secret,x-trace-id'
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization,x-trace-id'
 }
 
 const parse = raw => {
@@ -40,8 +41,6 @@ export async function onRequest({ request, env }) {
   const log = createLogger('fn-meetings', traceId, env)
   const headers = { ...CORS_HEADERS, 'X-Trace-Id': traceId }
 
-  const isAdmin = request.headers.get('x-admin-secret') === env.ADMIN_SECRET
-
   const verifyClient = async () => {
     try {
       const auth = request.headers.get('authorization') || ''
@@ -56,7 +55,7 @@ export async function onRequest({ request, env }) {
   const redis = new Redis({ url: env.UPSTASH_REDIS_REST_URL, token: env.UPSTASH_REDIS_REST_TOKEN })
 
   if (request.method === 'GET') {
-    const admin = isAdmin
+    const admin = await verifyAdminToken(request, env)
     const client = await verifyClient()
     if (!admin && !client) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
 
@@ -86,7 +85,7 @@ export async function onRequest({ request, env }) {
   }
 
   if (request.method === 'POST') {
-    const admin = isAdmin
+    const admin = await verifyAdminToken(request, env)
     const client = await verifyClient()
     if (!admin && !client) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
 

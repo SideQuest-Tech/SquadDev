@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis/cloudflare'
 import * as Sentry from '@sentry/cloudflare'
 import { createLogger } from '../_shared/logger.js'
+import { verifyAdminToken } from '../_shared/adminAuth.js'
 
 const parseArr = raw => {
   if (!raw) return []
@@ -25,7 +26,7 @@ export async function onRequest({ request, env }) {
   const log = createLogger('fn-projects', traceId, env)
   const headers = { 'X-Trace-Id': traceId }
 
-  if (request.headers.get('x-admin-secret') !== env.ADMIN_SECRET) {
+  if (!await verifyAdminToken(request, env)) {
     return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers })
   }
 
