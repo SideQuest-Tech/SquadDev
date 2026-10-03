@@ -1,4 +1,5 @@
 import gypsyRabbitPreview from '../assets/concepts/gypsy-rabbit.webp'
+import internetAthiPreview from '../assets/concepts/internet-athi.webp'
 import klubhousePreview from '../assets/concepts/klubhouse.webp'
 import liftiePreview from '../assets/concepts/liftie.webp'
 import openChatsPreview from '../assets/concepts/open-chats.webp'
@@ -30,6 +31,20 @@ export const concepts = [
       ['Type', 'Product concept'],
       ['Platform', 'Responsive web'],
       ['Focus', 'Shared mobility']
+    ]
+  },
+  {
+    id: 'internet-athi',
+    name: 'Internet Athi',
+    category: 'Music / Artist Portfolio',
+    description: 'A digital home for South African artist Internet Athi, bringing the Polymorphism record, live performances, artist story and bookings into one expressive experience.',
+    previewImage: internetAthiPreview,
+    url: 'https://at-umber-eight.vercel.app/',
+    frameLabel: 'internet-athi / concept',
+    meta: [
+      ['Type', 'Independent build'],
+      ['Platform', 'Responsive web'],
+      ['Focus', 'Music and artist identity']
     ]
   },
   {
